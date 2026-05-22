@@ -1,5 +1,5 @@
 import { Locale } from '@/i18n-config'
-import { urlForImage } from '@/lib/sanity.image'
+import { urlForCard } from '@/lib/sanity.image'
 import { formatEUR } from '@/lib/utils'
 import { Dict, Propiedad } from 'lib/interfaces'
 import Image from 'next/image'
@@ -31,9 +31,10 @@ export default function PropiedadCard({ params, dict, propiedad }: Props) {
         <div className='relative aspect-[2.78/2] w-full overflow-hidden rounded-t-md '>
           {propiedad.coverImage && (
             <Image
-              src={urlForImage(propiedad.coverImage).url()}
+              src={urlForCard(propiedad.coverImage)}
               alt={propiedad.title}
               fill
+              unoptimized
             />
           )}
         </div>
