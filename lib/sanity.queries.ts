@@ -139,3 +139,45 @@ export const bedroomsDD = groq`
 export const total = groq`
   count(*[_type == 'propiedad'])
 `
+
+/**
+ * Combined filters dropdown query.
+ * Returns all dropdown values and stats in a single GROQ request
+ * to avoid 8 separate Data Cache entries.
+ */
+export const filtersDropdownQuery = groq`
+{
+  "operacionDD": array::unique(*[_type == "operacion" ]{
+    "name": title[$lang],
+    "value": _id
+  }),
+  "tipoDD": array::unique(*[_type =="tipo"  && count(*[ _type == 'propiedad' && references(^._id)]) > 0]{
+    "name": title[$lang],
+    "value":_id
+  }),
+  "localizacionDD": *[_type == 'localizacion' && !(defined(parent))]{
+    title,
+    _id,
+    "count": count(*[_type == 'propiedad' && !(_id in path('drafts.**')) && references(^._id)]),
+    "children": *[ _type == 'localizacion' && references(^._id) && count(*[_type == 'propiedad' && !(_id in path('drafts.**')) && references(^._id)]) > 0]{
+      title,
+      _id,
+      "count": count(*[_type == 'propiedad' && !(_id in path('drafts.**')) && references(^._id)])
+    } | order(title asc),
+
+  }[ count > 0 || count(children) > 0]{
+    "name": title,
+    "value": _id,
+    count(children) > 0 => {
+        children[]{
+          "name": title,
+          "value": _id,
+        }
+          },
+  } | order(title asc),
+  "priceRentDD": math::max(*[_type == 'propiedad' && operacion._ref == 'operacion-en-alquiler'].price),
+  "priceSaleDD": math::max(*[_type == 'propiedad' && operacion._ref != 'operacion-en-alquiler'].price),
+  "bathroomsDD": math::max(*[_type == 'propiedad'].bathrooms),
+  "bedroomsDD": math::max(*[_type == 'propiedad'].bedrooms),
+  "total": count(*[_type == 'propiedad'])
+}`

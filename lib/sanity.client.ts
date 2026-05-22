@@ -4,20 +4,18 @@ import { apiVersion, dataset, projectId, useCdn } from './env'
 import { FiltersDD, FrontPage, Propiedad } from './interfaces'
 import {
   PROPIEDAD_FIELDS,
-  bathroomsDD,
-  bedroomsDD,
+  filtersDropdownQuery,
   frontPageQuery,
-  localizacionDD,
-  maxPriceRentDD,
-  maxPriceSaleDD,
-  operacionDD,
   pageBySlugQuery,
   pageSlugsQuery,
   propiedadBySlugQuery,
   propiedadSlugsQuery,
-  tipoDD,
-  total,
 } from './sanity.queries'
+import {
+  getPolicyOptions,
+  getPropertyDetailOptions,
+  getSearchListingOptions,
+} from './sanity.cache'
 
 export const client = createClient({ apiVersion, dataset, projectId, useCdn })
 
@@ -26,9 +24,8 @@ export async function getFrontPage(lang: Locale): Promise<FrontPage> {
     const { featured, latest } = await client.fetch(
       frontPageQuery,
       { lang },
-      { cache: 'no-store' }
+      getPolicyOptions('front-page')
     )
-    // console.log({ latest })
     return {
       featured,
       latest,
@@ -42,46 +39,11 @@ export async function getFiltersDropdownValues(
   lang: Locale
 ): Promise<FiltersDD> {
   if (client) {
-    const bathroomsData = client.fetch(bathroomsDD)
-    const bedroomsData = client.fetch(bedroomsDD)
-    const priceRentData = client.fetch(maxPriceRentDD)
-    const priceSaleData = client.fetch(maxPriceSaleDD)
-    const localizacionData = client.fetch(localizacionDD)
-    const tipoData = client.fetch(tipoDD, { lang })
-    const operacionData = client.fetch(operacionDD, { lang })
-    const totalData = client.fetch(total)
-
-    const [
-      bathroomsValues,
-      bedroomsValues,
-      priceRentValues,
-      priceSaleValues,
-      localizacionValues,
-      tipoValues,
-      operacionValues,
-      totalValues,
-    ] = await Promise.all([
-      bathroomsData,
-      bedroomsData,
-      priceRentData,
-      priceSaleData,
-      localizacionData,
-      tipoData,
-      operacionData,
-      totalData,
-    ])
-
-    return {
-      bathroomsDD: bathroomsValues,
-      bedroomsDD: bedroomsValues,
-      priceRentDD: priceRentValues,
-      priceSaleDD: priceSaleValues,
-      localizacionDD: localizacionValues,
-      tipoDD: tipoValues,
-      operacionDD: operacionValues,
-      total: totalValues,
-      /* operacionDD: formatOperacionDD(operacionValues), */
-    }
+    return await client.fetch(
+      filtersDropdownQuery,
+      { lang },
+      getPolicyOptions('filters')
+    )
   }
 
   return {} as any
@@ -93,7 +55,7 @@ export async function getSearchProperties(
 ): Promise<Propiedad[]> {
   if (client) {
     let query = `*[_type == 'propiedad'`
-    const queryMap = {
+    const queryMap: Record<string, (value: string) => string> = {
       precioMin: (value: string) => `price >= ${Number(value)}`,
       precioMax: (value: string) => `price <= ${Number(value)}`,
       banos: (value: string) => `bathrooms == ${value}`,
@@ -113,11 +75,13 @@ export async function getSearchProperties(
     }
 
     for (const [key, value] of Object.entries(searchParams)) {
+      const strValue = typeof value === 'string' ? value : undefined
+      if (!strValue) continue
       const queryFn = queryMap[key]
       if (queryFn) {
-        query += ` && ${queryFn(value)} `
+        query += ` && ${queryFn(strValue)} `
       } else {
-        query += ` && ${key}._ref == '${value}' `
+        query += ` && ${key}._ref == '${strValue}' `
       }
     }
     query += `]{
@@ -126,16 +90,11 @@ export async function getSearchProperties(
         _createdAt,
     } | order(_createdAt desc)[0...50]`
 
-    /* console.log(query) */
-
-    /* const propiedades = await client.fetch(
+    return await client.fetch(
       query,
       { lang },
-      { cache: 'no-store' }
+      getSearchListingOptions(searchParams)
     )
-    console.table(propiedades) */
-
-    return await client.fetch(query, { lang }, { cache: 'no-store' })
   }
 
   return {} as any
@@ -145,9 +104,11 @@ export async function getAllPropiedadesSlug(): Promise<
   Pick<Propiedad, 'slug'>[]
 > {
   if (client) {
-    const slugs: string[] = await client.fetch(propiedadSlugsQuery)
-    console.log(`propiedades publicadas: ${slugs}`)
-    console.log(`length: ${slugs.length}`)
+    const slugs: string[] = await client.fetch(
+      propiedadSlugsQuery,
+      {},
+      getPolicyOptions('propiedades')
+    )
     return slugs.map((slug) => ({ slug }))
   }
   return []
@@ -162,7 +123,7 @@ export async function getPropiedadBySlug(
       (await client.fetch(
         propiedadBySlugQuery,
         { slug, lang },
-        { cache: 'no-store' }
+        getPropertyDetailOptions(slug)
       )) || ({} as any)
     )
   }
@@ -172,14 +133,24 @@ export async function getPropiedadBySlug(
 
 export async function getAllPagesSlug() {
   if (client) {
-    const slugs: string[] = await client.fetch(pageSlugsQuery)
+    const slugs: string[] = await client.fetch(
+      pageSlugsQuery,
+      {},
+      getPolicyOptions('pages')
+    )
     return slugs
   }
 }
 
 export async function getPageBySlug(slug: string, lang: Locale) {
   if (client) {
-    return (await client.fetch(pageBySlugQuery, { slug, lang })) || ({} as any)
+    return (
+      (await client.fetch(
+        pageBySlugQuery,
+        { slug, lang },
+        getPolicyOptions('pages')
+      )) || ({} as any)
+    )
   }
 
   return {} as any
