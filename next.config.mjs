@@ -1,10 +1,11 @@
 /** @type {import('next').NextConfig} */
 const config = {
   images: {
-    remotePatterns: [
-      { hostname: 'cdn.sanity.io' },
-      { hostname: 'source.unsplash.com' },
-    ],
+    remotePatterns: [{ hostname: 'cdn.sanity.io' }],
+    formats: ['image/webp'],
+    deviceSizes: [360, 640, 768, 1024, 1280],
+    imageSizes: [64, 128, 256, 384],
+    minimumCacheTTL: 60 * 60 * 24 * 30,
   },
   //  typescript: {
   // Set this to false if you want production builds to abort if there's type errors

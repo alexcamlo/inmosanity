@@ -1,6 +1,6 @@
 'use client'
 
-import { urlForImage } from '@/lib/sanity.image'
+import { urlForDetail, urlForThumbnail } from '@/lib/sanity.image'
 import clsx from 'clsx'
 import useEmblaCarousel from 'embla-carousel-react'
 import Image from 'next/image'
@@ -52,7 +52,8 @@ const ProductSlider = ({ slides, vertical }: PropType) => {
 
   const formattedSlides = slides.map((slide) => {
     return {
-      sourceUrl: urlForImage(slide).url(),
+      sourceUrl: urlForDetail(slide),
+      thumbUrl: urlForThumbnail(slide),
       title: slide.asset?._ref,
     }
   })
@@ -70,28 +71,30 @@ const ProductSlider = ({ slides, vertical }: PropType) => {
             {formattedSlides.map((slide, index) => (
               <div className='embla__slide min-w-full' key={index}>
                 <div className='embla__slide__inner relative aspect-[3/2] h-full overflow-hidden rounded'>
-                  <Dialog >
+                  <Dialog>
                     <DialogTrigger>
                       <Image
                         className='embla__slide__img relative block rounded object-cover'
                         src={slide.sourceUrl}
                         alt={slide.title ? slide.title : ''}
                         fill
-                        sizes="(max-width: 1024px) 100vw, 75vw"
+                        sizes='(max-width: 1024px) 100vw, 75vw'
                         placeholder='blur'
                         blurDataURL={Shimmer}
-                        priority
+                        unoptimized
+                        {...(index === 0 ? { priority: true } : {})}
                       />
                     </DialogTrigger>
-                    <DialogContent className='w-full h-auto self-center aspect-[3/2] lg:max-w-4xl'>
+                    <DialogContent className='aspect-[3/2] h-auto w-full self-center lg:max-w-4xl'>
                       <Image
                         className='embla__slide__img relative block rounded object-cover'
                         src={slide.sourceUrl}
                         alt={slide.title ? slide.title : ''}
                         fill
-                        sizes="(max-width: 1024px) 90vw, 80vw"
+                        sizes='(max-width: 1024px) 90vw, 80vw'
                         placeholder='blur'
                         blurDataURL={Shimmer}
+                        unoptimized
                       />
                     </DialogContent>
                   </Dialog>
@@ -125,7 +128,7 @@ const ProductSlider = ({ slides, vertical }: PropType) => {
                 className={clsx(
                   'embla__slide embla__slide--thumb aspect-[3/2] w-1/5 shrink-0 rounded transition-opacity',
                   index == selectedIndex &&
-                  'is-selected border-2 border-green-500 opacity-100',
+                    'is-selected border-2 border-green-500 opacity-100',
                   !(index == selectedIndex) && 'opacity-75',
                   !vertical && 'w-full'
                 )}
@@ -137,11 +140,11 @@ const ProductSlider = ({ slides, vertical }: PropType) => {
                 >
                   <Image
                     className='embla__slide__thumbnail  relative block rounded object-cover'
-                    src={slide.sourceUrl}
+                    src={slide.thumbUrl}
                     alt={slide.title ? slide.title : ''}
                     fill
-                    sizes="(max-width: 1024px) 20vw, 160px"
-                    priority
+                    sizes='(max-width: 1024px) 20vw, 160px'
+                    unoptimized
                   />
                 </button>
               </div>

@@ -2,7 +2,7 @@
 
 import { Locale } from '@/i18n-config'
 import { Featured } from '@/lib/interfaces'
-import { urlForImage } from '@/lib/sanity.image'
+import { urlForFeatured, urlForThumbnail } from '@/lib/sanity.image'
 import clsx from 'clsx'
 import Autoplay from 'embla-carousel-autoplay'
 import useEmblaCarousel from 'embla-carousel-react'
@@ -54,7 +54,8 @@ const FeaturedSlider = ({ propiedades, params }: Props) => {
 
   const formattedSlides = propiedades.map((propiedad) => {
     return {
-      sourceUrl: urlForImage(propiedad.coverImage).url(),
+      sourceUrl: urlForFeatured(propiedad.coverImage),
+      thumbUrl: urlForThumbnail(propiedad.coverImage),
       title: propiedad.coverImage.asset?._ref,
     }
   })
@@ -86,12 +87,13 @@ const FeaturedSlider = ({ propiedades, params }: Props) => {
                 <Pill>{`${propiedad.tipo} - ${propiedad.operacion}`}</Pill>
                 {propiedad && propiedad.coverImage && (
                   <Image
-                    src={urlForImage(propiedad.coverImage).url()}
+                    src={urlForFeatured(propiedad.coverImage)}
                     alt={propiedad.title}
                     placeholder='blur'
                     blurDataURL={Shimmer}
                     fill
-                    sizes="(max-width: 1024px) 100vw, 75vw"
+                    sizes='(max-width: 1024px) 100vw, 75vw'
+                    unoptimized
                   />
                 )}
               </Link>
@@ -135,10 +137,11 @@ const FeaturedSlider = ({ propiedades, params }: Props) => {
                 >
                   <Image
                     className='embla__slide__thumbnail  relative block rounded object-cover'
-                    src={slide.sourceUrl}
+                    src={slide.thumbUrl}
                     alt={slide.title ? slide.title : ''}
                     fill
-                    sizes="(max-width: 1024px) 20vw, 160px"
+                    sizes='(max-width: 1024px) 20vw, 160px'
+                    unoptimized
                   />
                 </button>
               </div>

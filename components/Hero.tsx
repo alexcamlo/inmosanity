@@ -81,7 +81,6 @@ export default function Hero({ params, dict, filtersDD }: Props) {
       <Image
         src={BgHeroImg}
         alt='Campo de golf'
-        quality={100}
         priority
         fill
         className='object-cover'
