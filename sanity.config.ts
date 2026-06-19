@@ -7,9 +7,12 @@
 import { visionTool } from '@sanity/vision'
 import { defineConfig } from 'sanity'
 import { structureTool } from 'sanity/structure'
-import { apiVersion, dataset, projectId } from './lib/env'
 import { schema } from './lib/sanity.schema'
 import { defaultDocumentNode, structure } from './lib/sanity.structure'
+
+const apiVersion = '2023-01-01'
+const dataset = 'production'
+const projectId = 'vctgftz9'
 
 export default defineConfig({
   basePath: '/studio',
