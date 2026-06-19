@@ -1,5 +1,5 @@
-import { isUniqueAcrossAllDocuments } from 'lib/sanity.isUniqueAcrossAllDocuments'
 import { HiHome } from 'react-icons/hi2'
+import { isUniqueAcrossAllDocuments } from '../sanity.isUniqueAcrossAllDocuments'
 import { RuleType } from './schemaTypes'
 
 const propiedad = {

@@ -5,10 +5,10 @@
  */
 // see https://www.sanity.io/docs/api-versioning for how versioning works
 import { visionTool } from '@sanity/vision'
-import { schema } from 'lib/sanity.schema'
 import { defineConfig } from 'sanity'
-import { structureTool } from "sanity/structure";
+import { structureTool } from 'sanity/structure'
 import { apiVersion, dataset, projectId } from './lib/env'
+import { schema } from './lib/sanity.schema'
 import { defaultDocumentNode, structure } from './lib/sanity.structure'
 
 export default defineConfig({
