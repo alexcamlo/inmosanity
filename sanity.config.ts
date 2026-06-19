@@ -12,7 +12,7 @@ import { defaultDocumentNode, structure } from './lib/sanity.structure'
 
 const apiVersion = '2023-01-01'
 const dataset = 'production'
-const projectId = 'vctgftz9'
+const projectId = 'vstgftz9'
 
 export default defineConfig({
   basePath: '/studio',
