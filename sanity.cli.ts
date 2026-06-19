@@ -9,5 +9,12 @@ loadEnvConfig(__dirname, dev, { info: () => null, error: console.error })
 // const { projectId, dataset } = await import('lib/sanity.api')
 const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID
 const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET
+const studioHost = 'inmogolfbonalba'
 
-export default defineCliConfig({ api: { projectId, dataset } })
+export default defineCliConfig({
+  api: { projectId, dataset },
+  studioHost,
+  deployment: {
+    appId: 'ryy0kfstqjbs0hr4pzm0f51n',
+  },
+})
