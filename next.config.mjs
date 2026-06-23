@@ -7,6 +7,15 @@ const config = {
     imageSizes: [64, 128, 256, 384],
     minimumCacheTTL: 60 * 60 * 24 * 30,
   },
+  async redirects() {
+    return [
+      {
+        source: '/studio/:path*',
+        destination: 'https://inmogolfbonalba.sanity.studio/',
+        permanent: true,
+      },
+    ]
+  },
   //  typescript: {
   // Set this to false if you want production builds to abort if there's type errors
   //    ignoreBuildErrors: process.env.VERCEL_ENV === 'production',
