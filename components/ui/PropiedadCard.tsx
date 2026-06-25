@@ -1,7 +1,12 @@
 import { Locale } from '@/i18n-config'
 import { urlForCard } from '@/lib/sanity.image'
-import { formatEUR } from '@/lib/utils'
-import { Dict, Propiedad } from 'lib/interfaces'
+import { Dict } from 'lib/interfaces'
+import type { PropertyListingProjection } from 'lib/property-projection'
+import {
+  getPropertyFacts,
+  getPropertyLocationDisplay,
+  getPropertyPriceDisplay,
+} from 'lib/property-presentation'
 import Image from 'next/image'
 import Link from 'next/link'
 import Pill from './Pill'
@@ -16,11 +21,15 @@ import {
 
 type Props = {
   params: { lang: Locale }
-  propiedad: Propiedad
+  propiedad: PropertyListingProjection
   dict: Dict
 }
 
 export default function PropiedadCard({ params, dict, propiedad }: Props) {
+  const price = getPropertyPriceDisplay(propiedad, 'card', dict)
+  const location = getPropertyLocationDisplay(propiedad)
+  const facts = getPropertyFacts(propiedad, 'card')
+
   return (
     <Link
       key={propiedad.slug}
@@ -45,12 +54,10 @@ export default function PropiedadCard({ params, dict, propiedad }: Props) {
             <div className='flex items-center justify-between gap-4 sm:justify-start'>
               <h3 className=' text-xl font-semibold tracking-wide text-slate-900 '>
                 <div className='relative flex items-center gap-2'>
-                  <span className='font-bold '>
-                    {formatEUR(Number(propiedad.price))}
-                  </span>
-                  {propiedad.operacion.value === 'operacion-en-alquiler' && (
+                  <span className='font-bold '>{price.price}</span>
+                  {price.rentSuffix && (
                     <span className='text-xs font-medium '>
-                      /{dict.alquiler_tag}
+                      {price.rentSuffix}
                     </span>
                   )}
                 </div>
@@ -68,47 +75,67 @@ export default function PropiedadCard({ params, dict, propiedad }: Props) {
               <div className='flex items-center gap-1 text-lg text-slate-500'>
                 <MapPinIcon size={24} weight='duotone' />
                 <div className='capitalize text-slate-700'>
-                  {propiedad.localizacionPadre &&
-                    propiedad.localizacionPadre.parent &&
-                    propiedad.localizacionPadre.parent.title && (
-                      <span>{propiedad.localizacionPadre.parent.title} - </span>
-                    )}
-                  <span>{propiedad.localizacion}</span>
+                  {location.parent && (
+                    <span>{location.parent} - </span>
+                  )}
+                  <span>{location.child}</span>
                 </div>
               </div>
             </div>
 
             <div className='text-md grid grid-flow-col grid-rows-1 border-t border-slate-300 pt-4'>
-              {!!propiedad.bedrooms && (
-                <div className='flex items-center justify-center gap-1 text-slate-500'>
-                  <BedIcon size={20} weight='duotone' />
-                  <span className='text-slate-700'>{propiedad.bedrooms}</span>
-                </div>
-              )}
-
-              {(propiedad.bathrooms || propiedad.bathrooms === 0) && (
-                <div className='flex items-center justify-center gap-1 text-slate-500'>
-                  <BathtubIcon size={24} weight='duotone' />
-                  <span className='text-slate-700'>{propiedad.bathrooms}</span>
-                </div>
-              )}
-              {propiedad.size && (
-                <div className='flex items-center justify-center gap-1 text-slate-500'>
-                  <RulerIcon size={20} weight='duotone' />
-                  <span className='text-md text-slate-700'>
-                    {propiedad.size}
-                  </span>
-                  <span className='text-md text-slate-700'>
-                    m<sup className='font-features sups'>2</sup>
-                  </span>
-                </div>
-              )}
-              {propiedad.year && (
-                <div className='flex items-center justify-center gap-1 text-slate-500'>
-                  <CalendarBlankIcon size={20} weight='duotone' />
-                  <span className='text-slate-700'>{propiedad.year}</span>
-                </div>
-              )}
+              {facts.map((fact) => {
+                if (fact.key === 'bedrooms') {
+                  return (
+                    <div
+                      key={fact.key}
+                      className='flex items-center justify-center gap-1 text-slate-500'
+                    >
+                      <BedIcon size={20} weight='duotone' />
+                      <span className='text-slate-700'>{fact.value}</span>
+                    </div>
+                  )
+                }
+                if (fact.key === 'bathrooms') {
+                  return (
+                    <div
+                      key={fact.key}
+                      className='flex items-center justify-center gap-1 text-slate-500'
+                    >
+                      <BathtubIcon size={24} weight='duotone' />
+                      <span className='text-slate-700'>{fact.value}</span>
+                    </div>
+                  )
+                }
+                if (fact.key === 'size') {
+                  return (
+                    <div
+                      key={fact.key}
+                      className='flex items-center justify-center gap-1 text-slate-500'
+                    >
+                      <RulerIcon size={20} weight='duotone' />
+                      <span className='text-md text-slate-700'>
+                        {fact.value}
+                      </span>
+                      <span className='text-md text-slate-700'>
+                        m<sup className='font-features sups'>2</sup>
+                      </span>
+                    </div>
+                  )
+                }
+                if (fact.key === 'year') {
+                  return (
+                    <div
+                      key={fact.key}
+                      className='flex items-center justify-center gap-1 text-slate-500'
+                    >
+                      <CalendarBlankIcon size={20} weight='duotone' />
+                      <span className='text-slate-700'>{fact.value}</span>
+                    </div>
+                  )
+                }
+                return null
+              })}
             </div>
           </div>
         </div>

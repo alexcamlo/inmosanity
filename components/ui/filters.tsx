@@ -1,6 +1,14 @@
 'use client'
 
 import { Dict, FiltersDD, ParentLocalizacion } from '@/lib/interfaces'
+import {
+  LOCATION_ALL,
+  OPERACION_ALQUILER,
+  OPERACION_VENTA,
+  PropertySearchCriteria,
+  serializeSearchCriteria,
+  TIPO_ALL,
+} from '@/lib/property-search'
 import { createNumArray, formatEUR, getRoundedZeros } from '@/lib/utils'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { Fragment, useMemo, useState } from 'react'
@@ -51,7 +59,7 @@ function Filters({ dict, filtersDD, handleClose }: FilterBarProps) {
     return [
       {
         name: `${dict.filters.tipo_allValue}`,
-        value: 'tipo-todos',
+        value: TIPO_ALL,
       },
       ...tipoDD,
     ]
@@ -61,7 +69,7 @@ function Filters({ dict, filtersDD, handleClose }: FilterBarProps) {
     return [
       {
         name: `${dict.filters.localizacion_allValue}`,
-        value: 'localizacion-todas',
+        value: LOCATION_ALL,
         children: [],
       },
       ...localizacionDD,
@@ -97,40 +105,24 @@ function Filters({ dict, filtersDD, handleClose }: FilterBarProps) {
       : [50000, 100000, 150000, 200000, 250000, 300000]
   )
 
+  const initialOperacion = searchParams?.get('operacion') ?? OPERACION_VENTA
   const [filters, setFilters] = useState<Filters>({
-    operacion:
-      searchParams &&
-      (searchParams.get('operacion') !== null ||
-        searchParams.get('operacion') !== '')
-        ? searchParams.get('operacion')!
-        : 'operacion-en-venta',
-    tipo:
-      searchParams && searchParams.has('tipo')
-        ? searchParams.get('tipo')!
-        : 'tipo-todos',
-    localizacion:
-      searchParams && searchParams.has('localizacion')
-        ? searchParams.get('localizacion')!
-        : 'localizacion-todas',
-    precioMin:
-      searchParams && searchParams.has('precioMin')
-        ? searchParams.get('precioMin')!
-        : '0',
+    operacion: initialOperacion,
+    tipo: searchParams?.get('tipo') ?? TIPO_ALL,
+    localizacion: searchParams?.get('localizacion') ?? LOCATION_ALL,
+    precioMin: searchParams?.get('precioMin') ?? '0',
     precioMax:
-      searchParams && searchParams.has('precioMax')
-        ? searchParams.get('precioMax')!
-        : searchParams &&
-          searchParams.has('operacion') &&
-          searchParams.get('operacion') === 'operacion-en-alquiler'
+      searchParams?.get('precioMax') ??
+      (initialOperacion === OPERACION_ALQUILER
         ? precioMaxRentArrayDD.slice(-1).toString()
-        : precioMaxSaleArrayDD.slice(-1).toString(),
+        : precioMaxSaleArrayDD.slice(-1).toString()),
   })
 
   const bathroomsArrayDD = createNumArray(bathroomsDD, 1)
   const bedroomsArrayDD = createNumArray(bedroomsDD, 1)
 
   function handleOperacion(value: string) {
-    value === 'operacion-en-alquiler'
+    value === OPERACION_ALQUILER
       ? setFilters((prevFilters) => ({
           ...prevFilters,
           operacion: value,
@@ -146,7 +138,7 @@ function Filters({ dict, filtersDD, handleClose }: FilterBarProps) {
   }
 
   function handlePrecioMin(value: string) {
-    filters.operacion === 'operacion-en-alquiler'
+    filters.operacion === OPERACION_ALQUILER
       ? setPrecioMaxRentArrayDD(
           precioRentArrayDD.filter((f) => f > Number(value))
         )
@@ -161,7 +153,7 @@ function Filters({ dict, filtersDD, handleClose }: FilterBarProps) {
   }
 
   function handlePrecioMax(value: string) {
-    filters.operacion === 'operacion-en-alquiler'
+    filters.operacion === OPERACION_ALQUILER
       ? setPrecioMinRentArrayDD(
           precioRentArrayDD.filter((f) => f < Number(value))
         )
@@ -176,14 +168,19 @@ function Filters({ dict, filtersDD, handleClose }: FilterBarProps) {
   }
 
   const createQueryString = (filters: Filters) => {
-    const params = new URLSearchParams()
-    for (const [key, value] of Object.entries(filters)) {
-      if (value !== '') {
-        params.set(key, value)
-      }
+    const criteria: PropertySearchCriteria = {
+      ...(filters.operacion ? { operacion: filters.operacion } : {}),
+      ...(filters.tipo ? { tipo: filters.tipo } : {}),
+      ...(filters.localizacion ? { localizacion: filters.localizacion } : {}),
+      ...(filters.precioMin ? { precioMin: Number(filters.precioMin) } : {}),
+      ...(filters.precioMax ? { precioMax: Number(filters.precioMax) } : {}),
+      ...(filters.banos ? { banos: Number(filters.banos) } : {}),
+      ...(filters.habitaciones
+        ? { habitaciones: Number(filters.habitaciones) }
+        : {}),
     }
 
-    return params.toString()
+    return serializeSearchCriteria(criteria)
   }
 
   function handleFilters() {
@@ -352,7 +349,7 @@ function Filters({ dict, filtersDD, handleClose }: FilterBarProps) {
               sideOffset={1}
               className='max-h-[var(--radix-select-content-available-height)] w-[var(--radix-select-trigger-width)]'
             >
-              {filters.operacion === 'operacion-en-alquiler'
+              {filters.operacion === OPERACION_ALQUILER
                 ? precioMinRentArrayDD.map((item) => (
                     <SelectItem key={item} value={item.toString()}>
                       {formatEUR(item)}
@@ -382,7 +379,7 @@ function Filters({ dict, filtersDD, handleClose }: FilterBarProps) {
               sideOffset={1}
               className='max-h-[var(--radix-select-content-available-height)] w-[var(--radix-select-trigger-width)]'
             >
-              {filters.operacion === 'operacion-en-alquiler'
+              {filters.operacion === OPERACION_ALQUILER
                 ? precioMaxRentArrayDD.map((item) => (
                     <SelectItem key={item} value={item.toString()}>
                       {formatEUR(item)}

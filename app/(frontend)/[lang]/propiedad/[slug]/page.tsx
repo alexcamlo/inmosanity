@@ -19,19 +19,26 @@ import {
 import Pill from '@/components/ui/Pill'
 import { getDictionary } from '@/get-dictionary'
 import { i18n, Locale } from '@/i18n-config'
-import { formatEUR } from '@/lib/utils'
+import {
+  getPropertyFacts,
+  getPropertyLocationDisplay,
+  getPropertyPriceDisplay,
+} from '@/lib/property-presentation'
+import type { PropertyDetailProjection } from '@/lib/property-projection'
 import clsx from 'clsx'
 import { getAllPropiedadesSlug, getPropiedadBySlug } from 'lib/sanity.client'
 
-export default async function Propiedad(
-  props: {
-    params: Promise<{ lang: Locale; slug: string }>
-  }
-) {
-  const params = await props.params;
+export default async function Propiedad(props: {
+  params: Promise<{ lang: Locale; slug: string }>
+}) {
+  const params = await props.params
   const dict = await getDictionary(params.lang)
   const propiedadData = getPropiedadBySlug(params.lang, params.slug)
-  const propiedad = await propiedadData
+  const propiedad = (await propiedadData) as PropertyDetailProjection
+
+  const price = getPropertyPriceDisplay(propiedad, 'detail', dict)
+  const location = getPropertyLocationDisplay(propiedad)
+  const facts = getPropertyFacts(propiedad, 'detail')
 
   return (
     <div className=' py-4 sm:py-4'>
@@ -51,7 +58,7 @@ export default async function Propiedad(
         )}
       >
         {propiedad.images && propiedad.images.length > 0 && (
-          <div className='lg:-col-end-1 relative flex flex-col md:flex-row md:items-start md:gap-2 lg:row-span-3'>
+          <div className='relative flex flex-col md:flex-row md:items-start md:gap-2 lg:-col-end-1 lg:row-span-3'>
             <Pill>{propiedad.operacion.name.toUpperCase()}</Pill>
             <div className='sliderContainer lg:px4 relative flex grow items-center justify-center overflow-x-hidden'>
               <ProductSlider
@@ -63,7 +70,7 @@ export default async function Propiedad(
           </div>
         )}
 
-        <div className='flex basis-5/12 flex-col gap-4 px-4 '>
+        <div className='flex basis-5/12 flex-col gap-4 px-4 lg:row-start-1 '>
           <div
             className={clsx(
               'flex items-center gap-4',
@@ -116,10 +123,12 @@ export default async function Propiedad(
           </div>
           <div className='hidden sm:block'>
             <span className='text-2xl font-bold text-zinc-900 '>
-              {formatEUR(Number(propiedad.price))}
+              {price.price}
             </span>
-            {propiedad.operacion.value === 'operacion-en-alquiler' && (
-              <span className='font-medium text-zinc-700 '>/mes</span>
+            {price.rentSuffix && (
+              <span className='font-medium text-zinc-700 '>
+                {price.rentSuffix}
+              </span>
             )}
           </div>
           <div className='mb-2 flex flex-col gap-1'>
@@ -133,57 +142,80 @@ export default async function Propiedad(
             <div className='flex items-center gap-1 text-lg text-zinc-500'>
               <MapPinIcon size={24} weight='duotone' color='currentColor' />
               <div className='capitalize text-zinc-800'>
-                {propiedad.localizacionPadre &&
-                  propiedad.localizacionPadre.parent && (
-                    <span>{propiedad.localizacionPadre.parent.title} - </span>
-                  )}
-                <span>{propiedad.localizacion}</span>
+                {location.parent && <span>{location.parent} - </span>}
+                <span>{location.child}</span>
               </div>
             </div>
           </div>
 
           <div className='grid grid-flow-col grid-rows-1 border-y border-zinc-300 py-4'>
-            {(propiedad.bedrooms || propiedad.bedrooms === 0) && (
-              <div className='flex items-center justify-center gap-1'>
-                <BedIcon size={20} weight='duotone' color='currentColor' />
-                <span className='text-md  text-zinc-800'>
-                  {propiedad.bedrooms}
-                </span>
-              </div>
-            )}
-
-            {(propiedad.bathrooms || propiedad.bathrooms === 0) && (
-              <div className='flex items-center justify-center gap-1'>
-                <BathtubIcon size={20} weight='duotone' color='currentColor' />
-                <span className='text-md  text-zinc-800'>
-                  {propiedad.bathrooms}
-                </span>
-              </div>
-            )}
-            {propiedad.size && (
-              <div className='flex items-center justify-center gap-1'>
-                <RulerIcon size={20} weight='duotone' color='currentColor' />
-                <span className='text-md'>{propiedad.size}</span>
-                <span className=''>
-                  m<sup className='font-features sups'>2</sup>
-                </span>
-              </div>
-            )}
-            {propiedad.year && (
-              <div className='flex items-center justify-center gap-1'>
-                <CalendarBlankIcon
-                  size={20}
-                  weight='duotone'
-                  color='currentColor'
-                />
-                <span className=''>{propiedad.year}</span>
-              </div>
-            )}
+            {facts.map((fact) => {
+              if (fact.key === 'bedrooms') {
+                return (
+                  <div
+                    key={fact.key}
+                    className='flex items-center justify-center gap-1'
+                  >
+                    <BedIcon size={20} weight='duotone' color='currentColor' />
+                    <span className='text-md  text-zinc-800'>{fact.value}</span>
+                  </div>
+                )
+              }
+              if (fact.key === 'bathrooms') {
+                return (
+                  <div
+                    key={fact.key}
+                    className='flex items-center justify-center gap-1'
+                  >
+                    <BathtubIcon
+                      size={20}
+                      weight='duotone'
+                      color='currentColor'
+                    />
+                    <span className='text-md  text-zinc-800'>{fact.value}</span>
+                  </div>
+                )
+              }
+              if (fact.key === 'size') {
+                return (
+                  <div
+                    key={fact.key}
+                    className='flex items-center justify-center gap-1'
+                  >
+                    <RulerIcon
+                      size={20}
+                      weight='duotone'
+                      color='currentColor'
+                    />
+                    <span className='text-md'>{fact.value}</span>
+                    <span className=''>
+                      m<sup className='font-features sups'>2</sup>
+                    </span>
+                  </div>
+                )
+              }
+              if (fact.key === 'year') {
+                return (
+                  <div
+                    key={fact.key}
+                    className='flex items-center justify-center gap-1'
+                  >
+                    <CalendarBlankIcon
+                      size={20}
+                      weight='duotone'
+                      color='currentColor'
+                    />
+                    <span className=''>{fact.value}</span>
+                  </div>
+                )
+              }
+              return null
+            })}
           </div>
         </div>
 
         {propiedad.caracteristicas && (
-          <div className='mx-4 my-6 lg:col-start-2 lg:my-0'>
+          <div className='mx-4 my-6 lg:col-start-1 lg:my-0'>
             <div className='rounded-lg border-2 border-zinc-100 bg-zinc-50 p-2'>
               <ul className='flex flex-1 list-inside list-none flex-wrap justify-center gap-4 p-2 capitalize'>
                 {propiedad.caracteristicas.map((caracteristica, index) => (
@@ -211,7 +243,7 @@ export default async function Propiedad(
         )}
 
         {propiedad.description && (
-          <div className='mx-4 text-lg font-normal lg:col-start-2'>
+          <div className='mx-4 text-lg font-normal lg:col-start-1'>
             {propiedad.description}
           </div>
         )}
@@ -220,10 +252,12 @@ export default async function Propiedad(
         {propiedad.price && (
           <div className='flex grow items-baseline'>
             <span className='text-2xl font-bold text-zinc-900 '>
-              {formatEUR(Number(propiedad.price))}
+              {price.price}
             </span>
-            {propiedad.operacion.value === 'operacion-en-alquiler' && (
-              <span className='mt-4 font-medium text-zinc-700 '>/mes</span>
+            {price.rentSuffix && (
+              <span className='mt-4 font-medium text-zinc-700 '>
+                {price.rentSuffix}
+              </span>
             )}
           </div>
         )}
@@ -270,7 +304,7 @@ export async function generateStaticParams() {
   const locales = i18n.locales
 
   const params = locales!.flatMap((locale) => {
-    return slugs!.map((slug) => {
+    return slugs.map((slug) => {
       return { lang: locale, slug: slug.slug }
     })
   })

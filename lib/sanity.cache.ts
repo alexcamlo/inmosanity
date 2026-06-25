@@ -3,8 +3,19 @@
  * No Sanity client dependency – testable without mocks.
  *
  * Policies match ISR revalidate times and on-demand revalidation tags
- * used across the app.
+ * used across the app. Tag strings come from `lib/content-freshness.ts`
+ * so the fetch side and the revalidation side cannot drift.
  */
+
+import {
+  CONTENT_TAGS,
+  getFilterDropdownTags,
+  getFrontPageTags,
+  getPageTags,
+  getPropertyDetailTags,
+  getPropiedadesListingTags,
+} from './content-freshness'
+import { hasActiveFilters } from './property-search'
 
 /** Cache option shape accepted by `client.fetch()` (next-sanity / @sanity/client) */
 export type CacheOptions = {
@@ -23,12 +34,12 @@ export type ContentPolicy = {
   tags: string[]
 }
 
-/** Named policies for each content category */
+/** Named policies for each content category. */
 export const CONTENT_POLICIES: Record<string, ContentPolicy> = {
-  'front-page': { revalidate: 86400, tags: ['front-page'] },
-  filters: { revalidate: 86400, tags: ['filters'] },
-  propiedades: { revalidate: 86400, tags: ['propiedades'] },
-  pages: { revalidate: 86400, tags: ['pages'] },
+  'front-page': { revalidate: 86400, tags: getFrontPageTags() },
+  filters: { revalidate: 86400, tags: getFilterDropdownTags() },
+  propiedades: { revalidate: 86400, tags: getPropiedadesListingTags() },
+  pages: { revalidate: 86400, tags: getPageTags() },
 } as const
 
 /** Build a CacheOptions from a named policy */
@@ -63,21 +74,22 @@ export function getSearchListingOptions(
     return getPolicyOptions('propiedades')
   }
 
-  const hasFilters = Object.keys(searchParams).length > 0
-
-  if (hasFilters) {
+  if (hasActiveFilters(searchParams)) {
     return { cache: 'no-store' }
   }
 
   return getPolicyOptions('propiedades')
 }
 
-/** Build CacheOptions for a single property detail page */
+/** Build CacheOptions for a single property detail page. */
 export function getPropertyDetailOptions(slug: string): CacheOptions {
   return {
     next: {
       revalidate: 86400,
-      tags: ['propiedades', `propiedad:${slug}`],
+      tags: getPropertyDetailTags(slug),
     },
   }
 }
+
+// Re-export the tag vocabulary so existing imports keep working.
+export { CONTENT_TAGS }

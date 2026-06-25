@@ -1,5 +1,7 @@
 import { Image } from 'sanity'
 
+import type { PropertyListingProjection } from './property-projection'
+
 export interface Settings {
   title?: string
   description?: any[]
@@ -10,7 +12,7 @@ export interface Settings {
 
 export interface FrontPage {
   featured: Featured[]
-  latest: Propiedad[]
+  latest: PropertyListingProjection[]
 }
 
 export interface Featured {

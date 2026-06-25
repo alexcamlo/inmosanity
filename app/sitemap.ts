@@ -1,8 +1,7 @@
 import { i18n } from '@/i18n-config'
 import { getAllPropiedadesSlug } from '@/lib/sanity.client'
+import { getPropertyUrl, getStaticPageUrl } from '@/lib/site-routes'
 import { MetadataRoute } from 'next'
-
-const URL = 'https://inmogolfbonalba.com'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const slugs = await getAllPropiedadesSlug()
@@ -11,7 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const propiedades = locales!.flatMap((locale) => {
     return slugs!.map((slug) => {
       return {
-        url: `${URL}/${locale}/propiedad/${slug}`,
+        url: getPropertyUrl(locale, slug),
         lastModified: new Date().toISOString(),
       }
     })
@@ -22,7 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = locales!.flatMap((locale) => {
     return routes!.map((route) => {
       return {
-        url: `${URL}/${locale}/${route}`,
+        url: getStaticPageUrl(locale, route),
         lastModified: new Date().toISOString(),
       }
     })

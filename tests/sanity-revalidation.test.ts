@@ -46,14 +46,26 @@ console.log('paginas: OK')
 
 console.log('operacion / tipo / localizacion: OK')
 
+// ── caracteristicas — referenced from Propiedad detail pages ─────────
+
+;(function testCaracteristicasInvalidatesListings() {
+  const tags = getRevalidationTags({ _type: 'caracteristicas' })
+  assert.ok(
+    tags.includes('propiedades'),
+    'caracteristicas change should invalidate the listing cache',
+  )
+})()
+
+console.log('caracteristicas invalidates listing: OK')
+
 // ── unknown type throws ────────────────────────────────────────────────
 
 ;(function testUnknownTypeThrows() {
   assert.throws(
     () => {
-      getRevalidationTags({ _type: 'caracteristicas' })
+      getRevalidationTags({ _type: 'algunaCosaRara' })
     },
-    /Unknown document type: "caracteristicas"/,
+    /Unknown document type: "algunaCosaRara"/,
   )
 })()
 

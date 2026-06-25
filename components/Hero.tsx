@@ -2,9 +2,16 @@
 
 import { Locale } from '@/i18n-config'
 import { Dict, FiltersDD, ParentLocalizacion } from '@/lib/interfaces'
+import {
+  LOCATION_ALL,
+  OPERACION_VENTA,
+  PropertySearchCriteria,
+  serializeSearchCriteria,
+  TIPO_ALL,
+} from '@/lib/property-search'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
-import { Fragment, useCallback, useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import { MagnifyingGlassIcon } from './ui/icons'
 import {
   Select,
@@ -16,10 +23,6 @@ import {
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group'
 
 import BgHeroImg from '@/public/hero-golf.jpg'
-
-interface Filters {
-  operacion: string
-}
 
 type Props = {
   params: { lang: Locale }
@@ -34,7 +37,7 @@ export default function Hero({ params, dict, filtersDD }: Props) {
     return [
       {
         name: `${dict.filters.tipo_allValue}`,
-        value: 'tipo-todos',
+        value: TIPO_ALL,
       },
       ...tipoDD,
     ]
@@ -44,36 +47,29 @@ export default function Hero({ params, dict, filtersDD }: Props) {
     return [
       {
         name: `${dict.filters.localizacion_allValue}`,
-        value: 'localizacion-todas',
+        value: LOCATION_ALL,
         children: [],
       },
       ...localizacionDD,
     ]
   }, [localizacionDD, dict.filters.localizacion_allValue])
 
-  const [filters, setFilters] = useState<Filters>({
-    operacion: 'operacion-en-venta',
+  const [filters, setFilters] = useState<PropertySearchCriteria>({
+    operacion: OPERACION_VENTA,
   })
   const router = useRouter()
 
-  const updateFilters = (key: string, value: string) => {
+  const updateFilters = (key: keyof PropertySearchCriteria, value: string) => {
     setFilters((prevFilters) => ({
       ...prevFilters,
       [key]: value,
     }))
   }
 
-  const createQueryString = useCallback((filters: Filters) => {
-    const searchParams = new URLSearchParams()
-    for (const [key, value] of Object.entries(filters)) {
-      searchParams.set(key, value)
-    }
-
-    return searchParams.toString()
-  }, [])
-
   const handleFilters = async () => {
-    router.push(`/${params.lang}/propiedades?` + createQueryString(filters))
+    router.push(
+      `/${params.lang}/propiedades?` + serializeSearchCriteria(filters)
+    )
   }
 
   return (

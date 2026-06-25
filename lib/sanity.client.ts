@@ -1,14 +1,22 @@
 import { Locale } from '@/i18n-config'
 import { createClient } from 'next-sanity'
 import { apiVersion, dataset, projectId, useCdn } from './env'
-import { FiltersDD, FrontPage, Propiedad } from './interfaces'
+import { FiltersDD, FrontPage } from './interfaces'
+import {
+  buildPropertySearchQuery,
+  parseSearchParams,
+} from './property-search'
+import {
+  toDetailProjection,
+  toListingProjection,
+  toSlugProjections,
+} from './property-projection'
 import {
   getPolicyOptions,
   getPropertyDetailOptions,
   getSearchListingOptions,
 } from './sanity.cache'
 import {
-  PROPIEDAD_FIELDS,
   filtersDropdownQuery,
   frontPageQuery,
   pageBySlugQuery,
@@ -16,23 +24,31 @@ import {
   propiedadBySlugQuery,
   propiedadSlugsQuery,
 } from './sanity.queries'
+import type {
+  PropertyDetailProjection,
+  PropertyListingProjection,
+  PropertySlugProjection,
+} from './property-projection'
 
 export const client = createClient({ apiVersion, dataset, projectId, useCdn })
 
 export async function getFrontPage(lang: Locale): Promise<FrontPage> {
   if (client) {
-    const { featured, latest } = await client.fetch(
+    const raw = (await client.fetch(
       frontPageQuery,
       { lang },
       getPolicyOptions('front-page')
-    )
-    return {
-      featured,
-      latest,
-    }
+    )) as { featured?: FrontPage['featured']; latest?: unknown[] } | null
+    const featured = Array.isArray(raw?.featured) ? raw.featured : []
+    const latest = Array.isArray(raw?.latest)
+      ? raw.latest
+          .map((r) => toListingProjection(r as Parameters<typeof toListingProjection>[0]))
+          .filter((p): p is PropertyListingProjection => p !== null)
+      : []
+    return { featured, latest }
   }
 
-  return {} as any
+  return { featured: [], latest: [] }
 }
 
 export async function getFiltersDropdownValues(
@@ -46,70 +62,51 @@ export async function getFiltersDropdownValues(
     )
   }
 
-  return {} as any
+  return {
+    priceRentDD: 0,
+    priceSaleDD: 0,
+    bedroomsDD: 0,
+    bathroomsDD: 0,
+    operacionDD: [],
+    localizacionDD: [],
+    tipoDD: [],
+    total: 0,
+  }
 }
 
 export async function getSearchProperties(
   searchParams: { [key: string]: string | string[] | undefined },
   lang: Locale
-): Promise<Propiedad[]> {
+): Promise<PropertyListingProjection[]> {
   if (client) {
-    let query = `*[_type == 'propiedad'`
-    const queryMap: Record<string, (value: string) => string> = {
-      precioMin: (value: string) => `price >= ${Number(value)}`,
-      precioMax: (value: string) => `price <= ${Number(value)}`,
-      banos: (value: string) => `bathrooms == ${value}`,
-      habitaciones: (value: string) => `bedrooms == ${value}`,
-      localizacion: (value: string) => {
-        if (value == 'localizacion-todas') {
-          return `(localizacion._ref != '${value}' || localizacion->parent._ref != '${value}')`
-        }
-        return `(localizacion._ref == '${value}' || localizacion->parent._ref == '${value}')`
-      },
-      tipo: (value: string) => {
-        if (value == 'tipo-todos') {
-          return `tipo._ref != '${value}'`
-        }
-        return `tipo._ref == '${value}'`
-      },
-    }
+    const criteria = parseSearchParams(searchParams)
+    const { query, params } = buildPropertySearchQuery(criteria)
 
-    for (const [key, value] of Object.entries(searchParams)) {
-      const strValue = typeof value === 'string' ? value : undefined
-      if (!strValue) continue
-      const queryFn = queryMap[key]
-      if (queryFn) {
-        query += ` && ${queryFn(strValue)} `
-      } else {
-        query += ` && ${key}._ref == '${strValue}' `
-      }
-    }
-    query += `]{
-        ${PROPIEDAD_FIELDS}
-        "coverImage": images[0],
-        _createdAt,
-    } | order(_createdAt desc)[0...50]`
-
-    return await client.fetch(
+    const raw = (await client.fetch(
       query,
-      { lang },
+      { ...params, lang },
       getSearchListingOptions(searchParams)
-    )
+    )) as unknown
+    if (!Array.isArray(raw)) return []
+    return raw
+      .map((r) =>
+        toListingProjection(r as Parameters<typeof toListingProjection>[0])
+      )
+      .filter((p): p is PropertyListingProjection => p !== null)
   }
 
-  return {} as any
+  return []
 }
 
-export async function getAllPropiedadesSlug(): Promise<
-  Pick<Propiedad, 'slug'>[]
-> {
+export async function getAllPropiedadesSlug(): Promise<PropertySlugProjection[]> {
   if (client) {
-    const slugs: string[] = await client.fetch(
+    const raw = (await client.fetch(
       propiedadSlugsQuery,
       {},
       getPolicyOptions('propiedades')
-    )
-    return slugs.map((slug) => ({ slug }))
+    )) as unknown
+    if (!Array.isArray(raw)) return []
+    return toSlugProjections(raw as Parameters<typeof toSlugProjections>[0])
   }
   return []
 }
@@ -117,18 +114,25 @@ export async function getAllPropiedadesSlug(): Promise<
 export async function getPropiedadBySlug(
   lang: Locale,
   slug: string
-): Promise<Propiedad> {
+): Promise<PropertyDetailProjection> {
   if (client) {
-    return (
-      (await client.fetch(
-        propiedadBySlugQuery,
-        { slug, lang },
-        getPropertyDetailOptions(slug)
-      )) || ({} as any)
-    )
+    const raw = (await client.fetch(
+      propiedadBySlugQuery,
+      { slug, lang },
+      getPropertyDetailOptions(slug)
+    )) as Parameters<typeof toDetailProjection>[0]
+    const projection = toDetailProjection(raw)
+    if (projection) return projection
   }
-
-  return {} as any
+  return {
+    _id: '',
+    title: '',
+    slug,
+    price: 0,
+    operacion: { name: '', value: '' },
+    tipo: '',
+    localizacion: '',
+  }
 }
 
 export async function getAllPagesSlug() {

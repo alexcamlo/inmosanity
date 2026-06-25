@@ -19,7 +19,11 @@ function testNamedPolicy(key, expectedRevalidate, expectedTags) {
   assert.deepEqual(policy.tags, expectedTags, `${key}.tags`)
 
   const opts = getPolicyOptions(key)
-  assert.equal(opts.next.revalidate, expectedRevalidate, `${key} opts.revalidate`)
+  assert.equal(
+    opts.next.revalidate,
+    expectedRevalidate,
+    `${key} opts.revalidate`
+  )
   assert.deepEqual(opts.next.tags, expectedTags, `${key} opts.tags`)
 }
 
@@ -54,7 +58,13 @@ console.log('getCacheOptions: OK')
   assert.equal(opts.next.revalidate, 86400)
   assert.deepEqual(opts.next.tags, ['propiedades'])
 }
-console.log('getSearchListingOptions empty/undefined => cached: OK')
+
+{
+  const opts = getSearchListingOptions({ operacion: 'operacion-en-venta' })
+  assert.equal(opts.next.revalidate, 86400)
+  assert.deepEqual(opts.next.tags, ['propiedades'])
+}
+console.log('getSearchListingOptions empty/default => cached: OK')
 
 // ── getSearchListingOptions — with filters => no-store ────────────────
 
@@ -65,7 +75,10 @@ console.log('getSearchListingOptions empty/undefined => cached: OK')
 }
 
 {
-  const opts = getSearchListingOptions({ precioMin: '100000', precioMax: '300000' })
+  const opts = getSearchListingOptions({
+    precioMin: '100000',
+    precioMax: '300000',
+  })
   assert.equal(opts.cache, 'no-store')
 }
 console.log('getSearchListingOptions with filters => no-store: OK')
