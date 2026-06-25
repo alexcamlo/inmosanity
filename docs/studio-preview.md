@@ -1,72 +1,63 @@
-# Adding studio preview
+# Studio preview
 
-Although this template does not ship any studio schemas, it contains the bits needed to add live-preview to for any document schema.
+This document is kept as a historical reference. **The app does not
+currently run the IFramePreviewView from the original Sanity starter**;
+content freshness is handled by a Sanity webhook that invalidates Next
+cache tags.
 
-To add Studio preview to a document schema:
+## Current state — content freshness via webhook
 
-### Add a defaultDocumentNode resolver
+The current flow:
 
-1. `deskTool.defaultDocumentNode` allow us to configure views for schemas. Create ./sanity/structure.ts and paste:
+1. A document changes in Sanity Content Lake.
+2. Sanity posts the document to `/api/revalidate` on the deployed app
+   with a signature derived from `SANITY_REVALIDATE_SECRET`.
+3. `app/api/revalidate/route.ts` calls `parseBody` from
+   `next-sanity/webhook` to verify the signature.
+4. `getRevalidationTags` (in `lib/content-freshness.ts`, re-exported from
+   `lib/sanity.revalidation.ts`) maps the document's `_type` to the cache
+   tags that should be invalidated.
+5. The route calls `revalidateTag` for each tag.
 
-```ts
-// ./sanity/structure.ts
-import { IFramePreviewView } from './components/IFramePreviewView'
-import { DefaultDocumentNodeResolver, StructureResolver } from 'sanity/desk'
+Accepted document types: `propiedad`, `paginas`, `operacion`, `tipo`,
+`localizacion`, `caracteristicas`. Anything else returns a `500` from
+the route.
 
-// Example on how to add views for a schemaType
-// https://www.sanity.io/docs/create-custom-document-views-with-structure-builder
-export const defaultDocumentNode: DefaultDocumentNodeResolver = (S, ctx) => {
-  const schemaType = ctx.schema.get(ctx.schemaType)
+The tag vocabulary (`front-page`, `filters`, `propiedades`, `pages`,
+`propiedad:<slug>`) is defined once in `lib/content-freshness.ts` and
+shared with the fetch-side cache policy module (`lib/sanity.cache.ts`).
+This is what keeps fetch and invalidation aligned.
 
-  // add preview based on schema tname
-  if (schemaType.name === 'testDoc') {
-    return S.document().views([
-      S.view.form().title('Content'),
-      S.view.component(IFramePreviewView).title('Preview'),
-    ])
-  }
+## Live preview (not active)
 
-  // or add preview based on some custom property
-  if (schemaType.options?.preview) {
-    return S.document().views([
-      S.view.form().title('Content'),
-      S.view.component(IFramePreviewView).title('Preview'),
-    ])
-  }
+The `IFramePreviewView` from the original starter is not wired up. If you
+want to add it back, the relevant files would be:
 
-  return S.document()
-}
+- A Sanity Studio component that renders the iframe (typically
+  `sanity/components/IFramePreviewView.tsx`).
+- `lib/sanity.structure.js` — a `defaultDocumentNode` resolver that
+  attaches the preview view to schemas that opt in.
+- A draft mode entry route (App Router equivalent of the original
+  `pages/api/preview.ts` and `pages/api/exit-preview.ts`).
+- `VisualEditing` mounted in the app layout.
 
-export const structure: StructureResolver = (S, context) => {
-  return S.list()
-    .title('Content')
-    .items([...S.documentTypeListItems()])
-}
-```
+Until those pieces exist, the hosted Studio is for content editing only. The public app redirects `/studio` to `https://inmogolfbonalba.sanity.studio/`. Authors will not see a live preview of draft content in the app.
 
-2 . Add this function to `deskTool` configuration in `sanity.config.ts`, and import from `./sanity/structure`:
+## Reference: what the original starter described
 
-```ts
-//sanity.config.ts
-import { defaultDocumentNode, structure } from './sanity/structure'
+The text below is the original Sanity starter description. It refers to
+files that have since been removed in favour of the App Router layout:
 
-export default defineConfig({
-  //..other config
-  plugins: [deskTool({defaultDocumentNode, structure}),
-})
-```
+> Add a `defaultDocumentNode` resolver
+>
+> 1. `deskTool.defaultDocumentNode` allows us to configure views for
+>    schemas. Create `./sanity/structure.ts` and paste…
+> 2. Add this function to `deskTool` configuration in `sanity.config.ts`,
+>    and import from `./sanity/structure`…
+> 3. Add a field named `slug` with type `slug` to your document schema.
+> 4. Add a `[slug].tsx` route to `/pages` that resolves and renders the
+>    data.
 
-3. Add a field named `slug` with type `slug` to your document schema
-4. Add a `[slug].tsx` route to `/pages` that resolves and renders the data.
-5. (Check out the slug route in [personal-website-template](https://github.com/sanity-io/template-nextjs-personal-website/tree/main/pages/%5Bslug%5D.tsx) for an example of what that might look like)
-
-## Next steps
-
-Make changes to preview configuration as needed.
-The following files all work together:
-
-- `sanity/components/IFramePreviewView.tsx`
-- `sanity/lib/previewSecret.ts`
-- `pages/api/preview.ts`
-- `pages/api/exit-preview.ts`
-- Preview logic in any `/pages` routes
+The App Router equivalent of step 4 is
+`app/(frontend)/[lang]/[slug]/page.tsx`, which resolves `paginas`
+documents.

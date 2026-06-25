@@ -1,7 +1,8 @@
 'use client'
 
 /**
- * This config is used to set up Sanity Studio that's mounted on the `/studio/[[...index]]` route
+ * This config is used for the hosted Sanity Studio.
+ * The public Next app redirects `/studio` to the hosted Studio URL.
  */
 // see https://www.sanity.io/docs/api-versioning for how versioning works
 import { visionTool } from '@sanity/vision'
