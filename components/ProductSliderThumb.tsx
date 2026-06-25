@@ -11,14 +11,14 @@ type PropType = {
 export const Thumb = ({ selected, onClick, imgSrc, imgTitle }: PropType) => (
   <div
     className={`embla__slide embla__slide--thumb aspect-[3/2] w-1/5 shrink-0 rounded transition-opacity ${
-      selected
-        ? 'is-selected border-2 border-green-500 opacity-100'
-        : 'opacity-75 '
+      selected ? 'is-selected opacity-100' : 'opacity-75 '
     }`}
   >
     <button
       onClick={onClick}
-      className='embla__slide__inner embla__slide__inner--thumb relative aspect-[3/2] w-full'
+      className={`embla__slide__inner embla__slide__inner--thumb relative block aspect-[3/2] w-full overflow-hidden rounded border-2 ${
+        selected ? 'border-green-500' : 'border-transparent'
+      }`}
       type='button'
     >
       <Image

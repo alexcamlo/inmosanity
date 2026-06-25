@@ -127,15 +127,19 @@ const ProductSlider = ({ slides, vertical }: PropType) => {
                 key={index}
                 className={clsx(
                   'embla__slide embla__slide--thumb aspect-[3/2] w-1/5 shrink-0 rounded transition-opacity',
-                  index == selectedIndex &&
-                    'is-selected border-2 border-green-500 opacity-100',
+                  index == selectedIndex && 'is-selected opacity-100',
                   !(index == selectedIndex) && 'opacity-75',
                   !vertical && 'w-full'
                 )}
               >
                 <button
                   onClick={() => onThumbClick(index)}
-                  className='embla__slide__inner embla__slide__inner--thumb relative aspect-[3/2] w-full'
+                  className={clsx(
+                    'embla__slide__inner embla__slide__inner--thumb relative block aspect-[3/2] w-full overflow-hidden rounded border-2',
+                    index == selectedIndex
+                      ? 'border-green-500'
+                      : 'border-transparent'
+                  )}
                   type='button'
                 >
                   <Image

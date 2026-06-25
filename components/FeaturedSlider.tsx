@@ -124,15 +124,19 @@ const FeaturedSlider = ({ propiedades, params }: Props) => {
                 key={index}
                 className={clsx(
                   'embla__slide embla__slide--thumb xw-full aspect-[3/2] rounded transition-opacity',
-                  index == selectedIndex &&
-                    'is-selected border-2 border-green-500 opacity-100',
+                  index == selectedIndex && 'is-selected opacity-100',
                   !(index == selectedIndex) && 'opacity-75',
                   isBigScreen && 'w-full'
                 )}
               >
                 <button
                   onClick={() => onThumbClick(index)}
-                  className='embla__slide__inner embla__slide__inner--thumb relative aspect-[3/2] w-full'
+                  className={clsx(
+                    'embla__slide__inner embla__slide__inner--thumb relative block aspect-[3/2] w-full overflow-hidden rounded border-2',
+                    index == selectedIndex
+                      ? 'border-green-500'
+                      : 'border-transparent'
+                  )}
                   type='button'
                 >
                   <Image
