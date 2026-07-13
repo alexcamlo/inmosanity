@@ -19,6 +19,7 @@ import {
 import Pill from '@/components/ui/Pill'
 import { getDictionary } from '@/get-dictionary'
 import { i18n, Locale } from '@/i18n-config'
+import { buildWhatsAppPropertyUrl } from '@/lib/contact-links'
 import {
   getPropertyFacts,
   getPropertyLocationDisplay,
@@ -54,6 +55,12 @@ export default async function Propiedad(props: Props) {
     getPropiedadBySlug(params.lang, params.slug),
   ])
   const propiedad = requireProperty(propiedadData, notFound)
+  const whatsappUrl = buildWhatsAppPropertyUrl({
+    locale: params.lang,
+    slug: propiedad.slug,
+    title: propiedad.title,
+    messagePrefix: dict.whatsapp_enquiry_prefix,
+  })
 
   const price = getPropertyPriceDisplay(propiedad, 'detail', dict)
   const location = getPropertyLocationDisplay(propiedad)
@@ -125,7 +132,7 @@ export default async function Propiedad(props: Props) {
                   <a
                     className='grid h-10 w-10 place-items-center rounded-full text-green-600 hover:bg-green-50'
                     aria-label='Whatsapp'
-                    href='https://wa.me/34655849409'
+                    href={whatsappUrl}
                   >
                     <WhatsappLogoIcon size={28} />
                   </a>
@@ -300,7 +307,7 @@ export default async function Propiedad(props: Props) {
               <a
                 className='grid h-10 w-10 place-items-center rounded-full text-green-600 hover:bg-green-50'
                 aria-label='Whatsapp'
-                href='https://wa.me/34655849409'
+                href={whatsappUrl}
               >
                 <WhatsappLogoIcon size={28} />
               </a>

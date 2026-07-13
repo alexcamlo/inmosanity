@@ -89,6 +89,7 @@ export interface Dict {
   destacados: string
   ultimos_anadidos: string
   contactar_button: string
+  whatsapp_enquiry_prefix: string
   alquiler_tag: string
   footer: {
     quienes_somos: {
