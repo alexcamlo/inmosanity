@@ -7,7 +7,10 @@
     "lint": "eslint .",
     "lint:fix": "yarn run format && yarn run lint --fix",
     "start": "next start",
-    "type-check": "tsc --noEmit"
+    "test": "for f in tests/*.test.ts; do node_modules/.bin/tsx \"$f\" || exit 1; done",
+    "type-check": "tsc --noEmit",
+    "type-check:tests": "tsc --noEmit -p tsconfig.tests.json",
+    "verify": "yarn test && yarn type-check && yarn type-check:tests && yarn lint"
   },
   "dependencies": {
     "@asbjorn/eslint-plugin-groq": "^2.0.0",
@@ -73,6 +76,7 @@
   "devDependencies": {
     "@fsouza/prettierd": "^0.23.3",
     "@types/negotiator": "^0.6.1",
+    "@types/node": "22.10.10",
     "@types/react": "19.2.10",
     "@types/styled-components": "^5.1.26",
     "autoprefixer": "^10.4.14",
@@ -85,6 +89,7 @@
     "prettier-plugin-tailwindcss": "^0.2.8",
     "tailwindcss": "^3.3.2",
     "tailwindcss-animate": "^1.0.5",
+    "tsx": "4.21.0",
     "typescript": "^5.9.3",
     "yarn-upgrade-all": "^0.7.2"
   },

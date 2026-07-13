@@ -205,32 +205,24 @@ call sites do not duplicate width / quality / fit numbers.
 ## Validation commands
 
 The repo does not use Jest or Vitest. Tests are plain Node scripts run
-through `tsx`. There is no `test` script in `package.json`; the canonical
-way to run a single test is `node_modules/.bin/tsx <path>`. The full set:
+through `tsx`. Use `yarn test` to run every test in alphabetical order;
+use `node_modules/.bin/tsx tests/<name>.test.ts` to run a single file.
 
 ```bash
-node_modules/.bin/tsx tests/sanity-cache.test.ts
-node_modules/.bin/tsx tests/sanity-revalidation.test.ts
-node_modules/.bin/tsx tests/content-freshness.test.ts
-node_modules/.bin/tsx tests/sanity-image.test.ts
-node_modules/.bin/tsx tests/image-config.test.ts
-node_modules/.bin/tsx tests/property-search.test.ts
-node_modules/.bin/tsx tests/property-projection.test.ts
-node_modules/.bin/tsx tests/property-presentation.test.ts
-node_modules/.bin/tsx tests/site-routes.test.ts
+yarn test            # all tests in tests/*.test.ts
+yarn type-check      # tsc --noEmit on the app source
+yarn type-check:tests # tsc --noEmit -p tsconfig.tests.json
+yarn verify          # yarn test && yarn type-check && yarn type-check:tests && yarn lint
+yarn lint            # eslint .
+yarn format          # prettier --write .
+yarn build           # next build
+yarn start           # next start (after build)
 ```
 
-Other validation:
-
-```bash
-yarn type-check     # tsc --noEmit
-yarn lint           # eslint .
-yarn format         # prettier --write .
-yarn build          # next build
-yarn start          # next start (after build)
-```
-
-`yarn lint:fix` runs `format` and ESLint autofixes in sequence.
+`yarn lint:fix` runs `format` and ESLint autofixes in sequence. CI runs
+`yarn verify` on every push to `main` and pull request; a separate
+`build` job runs only when both `NEXT_PUBLIC_SANITY_PROJECT_ID` and
+`NEXT_PUBLIC_SANITY_DATASET` repository variables are configured.
 
 ## Out of scope
 
