@@ -13,9 +13,22 @@ console.log('getPropertyUrl uses slug projection: OK')
 {
   assert.equal(
     getStaticPageUrl('en', '/aviso-legal'),
-    'https://inmogolfbonalba.com/en//aviso-legal'
+    'https://inmogolfbonalba.com/en/aviso-legal'
   )
 }
-console.log('getStaticPageUrl preserves existing route formatting: OK')
+console.log('getStaticPageUrl strips leading slash from route: OK')
+
+{
+  assert.equal(
+    getStaticPageUrl('en', 'aviso-legal'),
+    'https://inmogolfbonalba.com/en/aviso-legal'
+  )
+}
+console.log('getStaticPageUrl accepts route without leading slash: OK')
+
+{
+  assert.equal(getStaticPageUrl('en', ''), 'https://inmogolfbonalba.com/en')
+}
+console.log('getStaticPageUrl handles empty route: OK')
 
 console.log('\nAll site-routes tests passed.')

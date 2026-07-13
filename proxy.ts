@@ -26,19 +26,6 @@ export function proxy(request: NextRequest) {
     return
   }
 
-  const searchParams = request.nextUrl.searchParams
-  const newSearchParams = new URLSearchParams()
-
-  const createQueryString = (searchParams: object) => {
-    for (const [key, value] of Object.entries(searchParams)) {
-      if (value !== '') {
-        newSearchParams.set(key, value)
-      }
-    }
-
-    return newSearchParams.toString()
-  }
-
   // // `/_next/` and `/api/` are ignored by the watcher, but we need to ignore files in `public` manually.
   // // If you have one
 
@@ -70,18 +57,16 @@ export function proxy(request: NextRequest) {
   if (pathnameIsMissingLocale) {
     const locale = getLocale(request)
 
-    // e.g. incoming request is /products
-    // The new URL is now /en-US/products
-    const newUrl = searchParams
-      ? NextResponse.redirect(
-          new URL(
-            `/${locale}/${pathname}?${createQueryString(searchParams)}`,
-            request.url
-          )
-        )
-      : NextResponse.redirect(new URL(`/${locale}/${pathname}`, request.url))
+    // Build the localized pathname with a single separator, regardless of
+    // whether the incoming pathname is empty or already starts with a slash.
+    const localizedPathname = `/${locale}${pathname.startsWith('/') ? pathname : `/${pathname}`}`
 
-    return newUrl
+    // Clone the nextUrl and rewrite the pathname; leave the existing
+    // (parsed) searchParams intact so order/encoding round-trips exactly.
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = localizedPathname
+
+    return NextResponse.redirect(redirectUrl)
   }
 }
 
