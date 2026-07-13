@@ -19,6 +19,7 @@ import {
 } from './property-search'
 import {
   toDetailProjection,
+  toFeaturedProjections,
   toListingProjection,
   toSlugProjections,
 } from './property-projection'
@@ -89,8 +90,10 @@ export function createSanityDataAdapter(
       frontPageQuery,
       { lang },
       getPolicyOptions('front-page')
-    )) as { featured?: FrontPage['featured']; latest?: unknown[] } | null
-    const featured = Array.isArray(raw?.featured) ? raw.featured : []
+    )) as { featured?: unknown; latest?: unknown[] } | null
+    const featured = Array.isArray(raw?.featured)
+      ? toFeaturedProjections(raw.featured)
+      : []
     const latest = Array.isArray(raw?.latest)
       ? raw.latest
           .map((r) =>

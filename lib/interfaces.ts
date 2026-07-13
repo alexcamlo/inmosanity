@@ -1,6 +1,9 @@
 import { Image } from 'sanity'
 
-import type { PropertyListingProjection } from './property-projection'
+import type {
+  FeaturedPropertyProjection,
+  PropertyListingProjection,
+} from './property-projection'
 
 export interface Settings {
   title?: string
@@ -11,16 +14,8 @@ export interface Settings {
 }
 
 export interface FrontPage {
-  featured: Featured[]
+  featured: FeaturedPropertyProjection[]
   latest: PropertyListingProjection[]
-}
-
-export interface Featured {
-  title: string
-  slug: string
-  coverImage: Image
-  tipo: string
-  operacion: string
 }
 
 export interface Propiedad {

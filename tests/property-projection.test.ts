@@ -7,6 +7,8 @@ const {
   LISTING_PROJECTION_KEYS,
   DETAIL_PROJECTION_KEYS,
   SLUG_PROJECTION_KEYS,
+  toFeaturedProjection,
+  toFeaturedProjections,
   toListingProjection,
   toDetailProjection,
   toSlugProjection,
@@ -21,6 +23,14 @@ const mockImage = {
     _ref: 'image-abc123-2000x3000-jpg',
     _type: 'reference',
   },
+}
+
+const fullFeaturedRaw = {
+  title: 'Villa destacada',
+  slug: 'villa-destacada',
+  coverImage: mockImage,
+  tipo: 'Villa',
+  operacion: 'Venta',
 }
 
 const fullListingRaw = {
@@ -56,6 +66,80 @@ const fullListingRaw = {
   assert.deepEqual([...SLUG_PROJECTION_KEYS], ['slug'])
 }
 console.log('Projection key catalog: OK')
+
+// ── toFeaturedProjection: valid + identity/image gates ───────────────
+
+{
+  const featured = toFeaturedProjection(fullFeaturedRaw)
+  assert.deepEqual(featured, fullFeaturedRaw)
+}
+
+{
+  assert.equal(toFeaturedProjection(null), null)
+  assert.equal(toFeaturedProjection(undefined), null)
+  assert.equal(toFeaturedProjection('invalid'), null)
+  assert.equal(toFeaturedProjection({ ...fullFeaturedRaw, title: '' }), null)
+  assert.equal(toFeaturedProjection({ ...fullFeaturedRaw, slug: '' }), null)
+  assert.equal(
+    toFeaturedProjection({ ...fullFeaturedRaw, coverImage: undefined }),
+    null
+  )
+  assert.equal(
+    toFeaturedProjection({ ...fullFeaturedRaw, coverImage: null }),
+    null
+  )
+  assert.equal(
+    toFeaturedProjection({
+      ...fullFeaturedRaw,
+      coverImage: { _type: 'image', asset: { _type: 'reference' } },
+    }),
+    null,
+    'an image without an asset reference is rejected'
+  )
+  assert.equal(
+    toFeaturedProjection({
+      ...fullFeaturedRaw,
+      coverImage: {
+        _type: 'image',
+        asset: { _type: 'reference', _ref: 'image-not-resolvable' },
+      },
+    }),
+    null,
+    'a malformed non-empty image reference is rejected'
+  )
+  assert.equal(
+    toFeaturedProjection({ ...fullFeaturedRaw, tipo: undefined }),
+    null,
+    'a missing type label is rejected before rendering the pill'
+  )
+  assert.equal(
+    toFeaturedProjection({ ...fullFeaturedRaw, operacion: '' }),
+    null,
+    'a missing operation label is rejected before rendering the pill'
+  )
+}
+
+{
+  const result = toFeaturedProjections([
+    { ...fullFeaturedRaw, slug: 'first' },
+    { ...fullFeaturedRaw, slug: '', title: 'invalid slug' },
+    {
+      ...fullFeaturedRaw,
+      slug: 'malformed-image',
+      coverImage: {
+        _type: 'image',
+        asset: { _type: 'reference', _ref: 'image-bad' },
+      },
+    },
+    { ...fullFeaturedRaw, slug: 'second', title: 'Second' },
+    { ...fullFeaturedRaw, slug: 'missing-image', coverImage: null },
+  ])
+  assert.deepEqual(
+    result.map((item: { slug: string }) => item.slug),
+    ['first', 'second']
+  )
+}
+console.log('toFeaturedProjection validation and ordering: OK')
 
 // ── toListingProjection: full record ─────────────────────────────────
 

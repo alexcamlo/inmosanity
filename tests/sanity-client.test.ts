@@ -68,6 +68,9 @@ function createFakeClient(responses: Record<string, unknown>): FakeClient {
   }
 }
 
+const IMAGE_REF_A = 'image-abc123-1200x800-jpg'
+const IMAGE_REF_B = 'image-def456-1600x900-webp'
+
 const minimalListingRecord = (overrides: Record<string, unknown> = {}) => ({
   _id: 'prop-1',
   title: 'Casa Bonita',
@@ -76,13 +79,13 @@ const minimalListingRecord = (overrides: Record<string, unknown> = {}) => ({
   operacion: { name: 'Venta', value: 'operacion-en-venta' },
   tipo: 'Casa',
   localizacion: 'Bonalba',
-  coverImage: { _type: 'image', asset: { _ref: 'image-a' } },
+  coverImage: { _type: 'image', asset: { _ref: IMAGE_REF_A } },
   ...overrides,
 })
 
 const minimalDetailRecord = (overrides: Record<string, unknown> = {}) => ({
   ...minimalListingRecord(),
-  images: [{ _type: 'image', asset: { _ref: 'image-a' } }],
+  images: [{ _type: 'image', asset: { _ref: IMAGE_REF_A } }],
   caracteristicas: [{ title: 'Piscina' }],
   description: { es: 'descripción', en: 'description' },
   ...overrides,
@@ -96,11 +99,34 @@ async function main(): Promise<void> {
       [frontPageQuery]: {
         featured: [
           {
-            title: 'Destacada',
-            slug: 'destacada',
-            coverImage: { _type: 'image', asset: { _ref: 'image-b' } },
+            title: 'Primera',
+            slug: 'primera',
+            coverImage: { _type: 'image', asset: { _ref: IMAGE_REF_A } },
             tipo: 'Casa',
             operacion: 'Venta',
+          },
+          {
+            title: 'Sin imagen',
+            slug: 'sin-imagen',
+            tipo: 'Casa',
+            operacion: 'Venta',
+          },
+          {
+            title: 'Referencia inválida',
+            slug: 'referencia-invalida',
+            coverImage: {
+              _type: 'image',
+              asset: { _ref: 'image-not-resolvable' },
+            },
+            tipo: 'Casa',
+            operacion: 'Venta',
+          },
+          {
+            title: 'Segunda',
+            slug: 'segunda',
+            coverImage: { _type: 'image', asset: { _ref: IMAGE_REF_B } },
+            tipo: 'Villa',
+            operacion: 'Alquiler',
           },
         ],
         latest: [
@@ -116,8 +142,12 @@ async function main(): Promise<void> {
     assert.equal(client.calls[0].query, frontPageQuery)
     assert.deepEqual(client.calls[0].params, { lang: 'es' })
     assert.deepEqual(client.calls[0].options, getPolicyOptions('front-page'))
-    assert.equal(out.featured.length, 1)
-    assert.equal(out.featured[0].title, 'Destacada')
+    assert.equal(out.featured.length, 2)
+    assert.deepEqual(
+      out.featured.map((item: { slug: string }) => item.slug),
+      ['primera', 'segunda'],
+      'malformed featured records are dropped without reordering valid neighbors'
+    )
     assert.equal(out.latest.length, 1)
     assert.equal(out.latest[0]?._id, 'latest-1')
     console.log('adapter getFrontPage happy path: OK')

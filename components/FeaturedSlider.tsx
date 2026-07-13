@@ -1,7 +1,7 @@
 'use client'
 
 import { Locale } from '@/i18n-config'
-import { Featured } from '@/lib/interfaces'
+import type { FeaturedPropertyProjection } from '@/lib/property-projection'
 import { urlForFeatured, urlForThumbnail } from '@/lib/sanity.image'
 import clsx from 'clsx'
 import Autoplay from 'embla-carousel-autoplay'
@@ -14,7 +14,7 @@ import Shimmer from './Shimmer'
 import Pill from './ui/Pill'
 
 type Props = {
-  propiedades: Featured[]
+  propiedades: FeaturedPropertyProjection[]
   params: { lang: Locale }
 }
 
@@ -85,17 +85,15 @@ const FeaturedSlider = ({ propiedades, params }: Props) => {
                 className='embla__slide  relative aspect-[3/2] min-w-full shrink-0 grow-0 overflow-hidden rounded-md '
               >
                 <Pill>{`${propiedad.tipo} - ${propiedad.operacion}`}</Pill>
-                {propiedad && propiedad.coverImage && (
-                  <Image
-                    src={urlForFeatured(propiedad.coverImage)}
-                    alt={propiedad.title}
-                    placeholder='blur'
-                    blurDataURL={Shimmer}
-                    fill
-                    sizes='(max-width: 1024px) 100vw, 75vw'
-                    unoptimized
-                  />
-                )}
+                <Image
+                  src={urlForFeatured(propiedad.coverImage)}
+                  alt={propiedad.title}
+                  placeholder='blur'
+                  blurDataURL={Shimmer}
+                  fill
+                  sizes='(max-width: 1024px) 100vw, 75vw'
+                  unoptimized
+                />
               </Link>
             ))}
           </div>
