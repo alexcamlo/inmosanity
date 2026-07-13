@@ -105,7 +105,7 @@ Expected: all commands exit 0; schema validation prints `0 errors` and `0 warnin
 
 ### Step 5: Re-audit and document residuals
 
-Capture a completed JSON audit and fail on any critical advisory rooted at direct `vercel`, `next`, or `sanity`:
+Capture a completed JSON audit and fail on malformed output, an inconsistent Yarn severity bitmask, or any critical advisory rooted at direct `vercel`, `next`, or `sanity`:
 
 ```bash
 audit_file=$(mktemp)
@@ -113,32 +113,56 @@ set +e
 yarn audit --groups dependencies --json > "$audit_file"
 audit_status=$?
 set -e
-test "$audit_status" -eq 0 -o "$audit_status" -eq 30
-rg -q '"type":"auditSummary"' "$audit_file"
-node - "$audit_file" <<'NODE'
+node - "$audit_file" "$audit_status" <<'NODE'
 const fs = require('node:fs')
 const file = process.argv[2]
+const auditStatus = Number(process.argv[3])
+const severityBits = { info: 1, low: 2, moderate: 4, high: 8, critical: 16 }
+const lines = fs.readFileSync(file, 'utf8').trim().split(/\n/).filter(Boolean)
+const events = lines.map((line) => JSON.parse(line))
+const summaries = events.filter((event) => event.type === 'auditSummary')
+if (summaries.length !== 1) {
+  throw new Error(`Expected one auditSummary, received ${summaries.length}`)
+}
+const counts = summaries[0].data.vulnerabilities
+const derivedStatus = Object.entries(severityBits).reduce(
+  (status, [severity, bit]) => status | (counts[severity] > 0 ? bit : 0),
+  0
+)
+if (!Number.isInteger(auditStatus) || auditStatus < 0 || auditStatus > 31) {
+  throw new Error(`Invalid Yarn audit status ${auditStatus}`)
+}
+if (auditStatus !== derivedStatus) {
+  throw new Error(`Audit status ${auditStatus} does not match summary bitmask ${derivedStatus}`)
+}
 const blockedRoots = new Set(['vercel', 'next', 'sanity'])
 const blocked = []
-for (const line of fs.readFileSync(file, 'utf8').trim().split(/\n/)) {
-  const event = JSON.parse(line)
+const sanityHighEvents = []
+for (const event of events) {
   if (event.type !== 'auditAdvisory') continue
   const advisory = event.data.advisory
   const root = (event.data.resolution?.path || '').split('>')[0]
   if (advisory.severity === 'critical' && blockedRoots.has(root)) {
     blocked.push(`${root} > ${advisory.module_name}: ${advisory.title}`)
   }
+  if (advisory.severity === 'high' && root === 'sanity') {
+    sanityHighEvents.push(advisory.id)
+  }
 }
 if (blocked.length) {
   console.error(blocked.join('\n'))
   process.exit(1)
 }
+console.log(`Audit summary ${JSON.stringify(counts)}; status=${auditStatus}`)
+console.log(
+  `Sanity residual high paths=${sanityHighEvents.length}; unique advisories=${new Set(sanityHighEvents).size}`
+)
 console.log('No critical Next, Sanity, or Vercel advisory')
 NODE
 trash "$audit_file"
 ```
 
-Expected: audit completion is proved by `auditSummary`, the Node check prints `No critical Next, Sanity, or Vercel advisory`, and the block exits 0. Also confirm Vercel-rooted high paths are gone. High findings in genuinely unreachable optional tooling may remain; record exact package paths and why they are accepted rather than suppressing them. If a used Sanity critical remains with no compatible in-major fix, STOP and report.
+Expected: every JSON line parses, exactly one `auditSummary` exists, the process status is the matching Yarn 1 severity bitmask from `0` through `31`, the Node check prints `No critical Next, Sanity, or Vercel advisory`, and the block exits 0. Also confirm Vercel-rooted high paths are gone. At the compatible-version review on 2026-07-13, 49 remaining high path events represented 19 unique advisories under the used Sanity runtime, Studio, and CLI graph; they are follow-up triage rather than unreachable-code dismissals or grounds for suppressing the audit. Re-record current counts and paths whenever the registry advisory set changes. If a used Sanity critical remains with no compatible in-major fix, STOP and report.
 
 ## Test plan
 
