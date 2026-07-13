@@ -24,17 +24,18 @@ import {
   getPropertyLocationDisplay,
   getPropertyPriceDisplay,
 } from '@/lib/property-presentation'
-import type { PropertyDetailProjection } from '@/lib/property-projection'
+import { requireProperty } from '@/lib/require-property'
 import clsx from 'clsx'
 import { getAllPropiedadesSlug, getPropiedadBySlug } from 'lib/sanity.client'
+import { notFound } from 'next/navigation'
 
 export default async function Propiedad(props: {
   params: Promise<{ lang: Locale; slug: string }>
 }) {
   const params = await props.params
   const dict = await getDictionary(params.lang)
-  const propiedadData = getPropiedadBySlug(params.lang, params.slug)
-  const propiedad = (await propiedadData) as PropertyDetailProjection
+  const propiedadData = await getPropiedadBySlug(params.lang, params.slug)
+  const propiedad = requireProperty(propiedadData, notFound)
 
   const price = getPropertyPriceDisplay(propiedad, 'detail', dict)
   const location = getPropertyLocationDisplay(propiedad)

@@ -73,19 +73,9 @@ export type SanityDataAdapter = {
   getPropiedadBySlug(
     lang: Locale,
     slug: string
-  ): Promise<PropertyDetailProjection>
+  ): Promise<PropertyDetailProjection | null>
   getAllPagesSlug(): Promise<string[] | undefined>
   getPageBySlug(slug: string, lang: Locale): Promise<SanityPage>
-}
-
-const EMPTY_DETAIL: PropertyDetailProjection = {
-  _id: '',
-  title: '',
-  slug: '',
-  price: 0,
-  operacion: { name: '', value: '' },
-  tipo: '',
-  localizacion: '',
 }
 
 /**
@@ -154,15 +144,13 @@ export function createSanityDataAdapter(
   async function getPropiedadBySlug(
     lang: Locale,
     slug: string
-  ): Promise<PropertyDetailProjection> {
+  ): Promise<PropertyDetailProjection | null> {
     const raw = (await client.fetch(
       propiedadBySlugQuery,
       { slug, lang },
       getPropertyDetailOptions(slug)
     )) as Parameters<typeof toDetailProjection>[0]
-    const projection = toDetailProjection(raw)
-    if (projection) return projection
-    return { ...EMPTY_DETAIL, slug }
+    return toDetailProjection(raw)
   }
 
   async function getAllPagesSlug(): Promise<string[] | undefined> {

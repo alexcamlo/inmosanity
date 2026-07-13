@@ -284,6 +284,7 @@ async function main(): Promise<void> {
       client.calls[0].options,
       getPropertyDetailOptions('casa-x')
     )
+    assert.ok(out)
     assert.equal(out._id, 'prop-1')
     assert.equal(out.slug, 'casa-x')
     assert.equal(out.title, 'Casa Bonita')
@@ -291,23 +292,33 @@ async function main(): Promise<void> {
     console.log('adapter getPropiedadBySlug valid projection: OK')
   }
 
-  {
-    // Current contract: a record missing identity fields falls back to
-    // an empty shell that still preserves the requested slug. Plan 005
-    // will change this to a 404; the characterization captures the
-    // present behavior so the change is intentional.
-    const client = createFakeClient({ [propiedadBySlugQuery]: { _id: '' } })
+  for (const [name, response] of [
+    ['null response', null],
+    ['missing id', minimalDetailRecord({ _id: '' })],
+    ['missing title', minimalDetailRecord({ title: '' })],
+    ['missing slug', minimalDetailRecord({ slug: '' })],
+  ] as const) {
+    const client = createFakeClient({ [propiedadBySlugQuery]: response })
     const adapter = createSanityDataAdapter(client)
     const out = await adapter.getPropiedadBySlug('en', 'missing-slug')
 
-    assert.equal(out._id, '')
-    assert.equal(out.title, '')
-    assert.equal(out.slug, 'missing-slug')
-    assert.equal(out.price, 0)
-    assert.deepEqual(out.operacion, { name: '', value: '' })
-    console.log(
-      'adapter getPropiedadBySlug missing-record fallback: OK (characterization)'
+    assert.equal(out, null, name)
+  }
+  console.log('adapter getPropiedadBySlug missing/malformed records: OK')
+
+  {
+    const client = createFakeClient({})
+    const failure = new Error('Sanity unavailable')
+    client.fetch = async () => {
+      throw failure
+    }
+    const adapter = createSanityDataAdapter(client)
+
+    await assert.rejects(
+      adapter.getPropiedadBySlug('en', 'network-error'),
+      (error: unknown) => error === failure
     )
+    console.log('adapter getPropiedadBySlug fetch rejection propagates: OK')
   }
 
   // ── Page getters ───────────────────────────────────────────────────
