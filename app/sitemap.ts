@@ -11,7 +11,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return slugs!.map((slug) => {
       return {
         url: getPropertyUrl(locale, slug),
-        lastModified: new Date().toISOString(),
       }
     })
   })
@@ -22,7 +21,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     return routes!.map((route) => {
       return {
         url: getStaticPageUrl(locale, route),
-        lastModified: new Date().toISOString(),
       }
     })
   })

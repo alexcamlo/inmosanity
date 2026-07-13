@@ -7,13 +7,20 @@ import {
   getFiltersDropdownValues,
   getSearchProperties,
 } from '@/lib/sanity.client'
+import { getPropertyListingMetadata } from '@/lib/site-metadata'
 import clsx from 'clsx'
+import type { Metadata } from 'next'
 
 type Props = {
   params: Promise<{
     lang: Locale
   }>
   searchParams: Promise<{ [key: string]: string | string[] }>
+}
+
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params
+  return getPropertyListingMetadata(params.lang)
 }
 
 export default async function PropiedadesPage(props: Props) {

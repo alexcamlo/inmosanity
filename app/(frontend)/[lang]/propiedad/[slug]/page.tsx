@@ -25,13 +25,29 @@ import {
   getPropertyPriceDisplay,
 } from '@/lib/property-presentation'
 import { requireProperty } from '@/lib/require-property'
+import {
+  getMissingPropertyMetadata,
+  getPropertyMetadata,
+} from '@/lib/site-metadata'
 import clsx from 'clsx'
 import { getAllPropiedadesSlug, getPropiedadBySlug } from 'lib/sanity.client'
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
-export default async function Propiedad(props: {
+type Props = {
   params: Promise<{ lang: Locale; slug: string }>
-}) {
+}
+
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params
+  const property = await getPropiedadBySlug(params.lang, params.slug)
+
+  return property
+    ? getPropertyMetadata(params.lang, property)
+    : getMissingPropertyMetadata()
+}
+
+export default async function Propiedad(props: Props) {
   const params = await props.params
   const dict = await getDictionary(params.lang)
   const propiedadData = await getPropiedadBySlug(params.lang, params.slug)
