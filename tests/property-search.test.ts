@@ -8,7 +8,7 @@ const {
   TIPO_ALL,
   OPERACION_ALQUILER,
   OPERACION_VENTA,
-  EMPTY_SEARCH_CRITERIA,
+  DEFAULT_SEARCH_CRITERIA,
   hasActiveFilters,
   parseSearchParams,
   serializeSearchCriteria,
@@ -17,16 +17,27 @@ const {
 } = require('../lib/property-search')
 const { PROPIEDAD_FIELDS } = require('../lib/sanity.queries')
 
-// ── Default (no filters) — list query, no extra filters ──────────────
+// ── Default (no filters) — sale query ────────────────────────────────
 
 {
-  const criteria = parseSearchParams({})
-  assert.deepEqual(criteria, EMPTY_SEARCH_CRITERIA)
+  assert.equal(Object.isFrozen(DEFAULT_SEARCH_CRITERIA), true)
+  for (const raw of [undefined, null, {}]) {
+    const criteria = parseSearchParams(raw)
+    assert.deepEqual(criteria, DEFAULT_SEARCH_CRITERIA)
+    assert.notEqual(criteria, DEFAULT_SEARCH_CRITERIA)
+  }
   assert.equal(hasActiveFilters({}), false)
   assert.equal(hasActiveFilters(undefined), false)
   assert.equal(hasActiveFilters(null), false)
 }
-console.log('parseSearchParams empty: OK')
+console.log('parseSearchParams empty defaults to sale: OK')
+
+{
+  const criteria = parseSearchParams({ tipo: 'tipo-piso' })
+  assert.equal(criteria.operacion, OPERACION_VENTA)
+  assert.equal(criteria.tipo, 'tipo-piso')
+}
+console.log('parseSearchParams unrelated filter defaults to sale: OK')
 
 {
   const criteria = parseSearchParams({ operacion: OPERACION_VENTA })
@@ -40,11 +51,11 @@ console.log('parseSearchParams default operacion only: OK')
   assert.match(query, /_type == 'propiedad'/)
   assert.ok(query.includes(PROPIEDAD_FIELDS))
   assert.ok(query.includes('order(_createdAt desc)'))
-  assert.deepEqual(params, {})
-  // No extra filters should leak in
+  assert.deepEqual(params, { operacion: OPERACION_VENTA })
+  assert.ok(query.includes('operacion._ref == $operacion'))
+  // No unrelated filters should leak in
   assert.equal(query.includes('price >='), false)
   assert.equal(query.includes('bathrooms =='), false)
-  assert.equal(query.includes('operacion._ref =='), false)
 }
 console.log('buildPropertySearchQuery default: OK')
 
@@ -86,6 +97,14 @@ console.log('parseSearchParams non-numeric coerces to undefined: OK')
 console.log('parseSearchParams array values pick first: OK')
 
 // ── Round-trip serialize/parse ───────────────────────────────────────
+
+{
+  const serialized = serializeSearchCriteria(DEFAULT_SEARCH_CRITERIA)
+  assert.deepEqual(Object.fromEntries(new URLSearchParams(serialized)), {
+    operacion: OPERACION_VENTA,
+  })
+}
+console.log('serialize default criteria includes sale: OK')
 
 {
   const original = parseSearchParams({
@@ -134,6 +153,7 @@ console.log('operacion filter handling: OK')
   assert.ok(query.includes('bathrooms == $banos'))
   assert.ok(query.includes('bedrooms == $habitaciones'))
   assert.deepEqual(params, {
+    operacion: OPERACION_VENTA,
     tipo: 'tipo-piso',
     localizacion: 'localizacion-1',
     precioMin: 100000,
@@ -181,10 +201,10 @@ console.log('All sentinel handling: OK')
 
 {
   const criteria = parseSearchParams({ foo: 'foo-id' })
-  assert.deepEqual(criteria, {})
+  assert.deepEqual(criteria, DEFAULT_SEARCH_CRITERIA)
   const { query, params } = buildPropertySearchQuery(criteria)
   assert.equal(query.includes('foo'), false)
-  assert.deepEqual(params, {})
+  assert.deepEqual(params, { operacion: OPERACION_VENTA })
 }
 console.log('Unknown filter handling: OK')
 

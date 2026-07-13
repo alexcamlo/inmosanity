@@ -37,6 +37,10 @@ export type PropertySearchCriteria = {
   habitaciones?: number
 }
 
+/** Immutable default listing criteria: sale properties. */
+export const DEFAULT_SEARCH_CRITERIA: Readonly<PropertySearchCriteria> =
+  Object.freeze({ operacion: OPERACION_VENTA })
+
 export type PropertySearchQueryResult = {
   /** GROQ query string with named parameters for user-controlled values. */
   query: string
@@ -111,9 +115,10 @@ export function hasActiveFilters(
 export function parseSearchParams(
   params: RawSearchParams | undefined | null
 ): PropertySearchCriteria {
-  if (!params) return {}
+  if (!params) return { ...DEFAULT_SEARCH_CRITERIA }
 
-  const operacion = readString(params.operacion)
+  const operacion =
+    readString(params.operacion) ?? DEFAULT_SEARCH_CRITERIA.operacion
   const tipo = readString(params.tipo)
   const localizacion = readString(params.localizacion)
   const precioMin = readNumber(params.precioMin)
@@ -225,6 +230,3 @@ export function buildPropertySearchQuery(
     params,
   }
 }
-
-/** A criteria object equivalent to "no filters applied". */
-export const EMPTY_SEARCH_CRITERIA: PropertySearchCriteria = {}

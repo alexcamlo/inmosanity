@@ -3,6 +3,10 @@ const assert = require('node:assert/strict')
 // No Sanity env vars needed — this module is pure logic.
 
 const {
+  OPERACION_ALQUILER,
+  OPERACION_VENTA,
+} = require('../lib/property-search')
+const {
   CONTENT_POLICIES,
   getCacheOptions,
   getPolicyOptions,
@@ -60,13 +64,19 @@ console.log('getCacheOptions: OK')
 }
 
 {
-  const opts = getSearchListingOptions({ operacion: 'operacion-en-venta' })
+  const opts = getSearchListingOptions({ operacion: OPERACION_VENTA })
   assert.equal(opts.next.revalidate, 86400)
   assert.deepEqual(opts.next.tags, ['propiedades'])
 }
 console.log('getSearchListingOptions empty/default => cached: OK')
 
 // ── getSearchListingOptions — with filters => no-store ────────────────
+
+{
+  const opts = getSearchListingOptions({ operacion: OPERACION_ALQUILER })
+  assert.equal(opts.cache, 'no-store')
+  assert.equal(opts.next, undefined)
+}
 
 {
   const opts = getSearchListingOptions({ tipo: 'casa' })
