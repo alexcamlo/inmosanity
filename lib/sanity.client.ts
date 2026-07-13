@@ -1,7 +1,18 @@
-import { Locale } from '@/i18n-config'
+/**
+ * Public Sanity data adapter.
+ *
+ * Production exports delegate to `createSanityDataAdapter` with the
+ * default `next-sanity` client. Tests construct their own adapter
+ * through the same factory with a fake fetch client.
+ */
+
 import { createClient } from 'next-sanity'
-import { apiVersion, dataset, projectId, useCdn } from './env'
-import { FiltersDD, FrontPage } from './interfaces'
+
+import type { Locale } from '@/i18n-config'
+import type {
+  FiltersDD,
+  FrontPage,
+} from './interfaces'
 import {
   buildPropertySearchQuery,
   parseSearchParams,
@@ -10,6 +21,11 @@ import {
   toDetailProjection,
   toListingProjection,
   toSlugProjections,
+} from './property-projection'
+import type {
+  PropertyDetailProjection,
+  PropertyListingProjection,
+  PropertySlugProjection,
 } from './property-projection'
 import {
   getPolicyOptions,
@@ -24,16 +40,61 @@ import {
   propiedadBySlugQuery,
   propiedadSlugsQuery,
 } from './sanity.queries'
-import type {
-  PropertyDetailProjection,
-  PropertyListingProjection,
-  PropertySlugProjection,
-} from './property-projection'
+import { apiVersion, dataset, projectId, useCdn } from './env'
 
-export const client = createClient({ apiVersion, dataset, projectId, useCdn })
+/** Minimal fetch-client interface consumed by the adapter factory. */
+export interface SanityFetchClient {
+  fetch<T = unknown>(
+    query: string,
+    params?: Record<string, unknown>,
+    options?: {
+      cache?: 'force-cache' | 'no-store'
+      next?: {
+        revalidate?: number | false
+        tags?: string[]
+      }
+    }
+  ): Promise<T>
+}
 
-export async function getFrontPage(lang: Locale): Promise<FrontPage> {
-  if (client) {
+export type SanityPage = {
+  slug?: string
+  content: Array<{ _type: string; [key: string]: unknown }>
+}
+
+export type SanityDataAdapter = {
+  getFrontPage(lang: Locale): Promise<FrontPage>
+  getFiltersDropdownValues(lang: Locale): Promise<FiltersDD>
+  getSearchProperties(
+    searchParams: { [key: string]: string | string[] | undefined },
+    lang: Locale
+  ): Promise<PropertyListingProjection[]>
+  getAllPropiedadesSlug(): Promise<PropertySlugProjection[]>
+  getPropiedadBySlug(
+    lang: Locale,
+    slug: string
+  ): Promise<PropertyDetailProjection>
+  getAllPagesSlug(): Promise<string[] | undefined>
+  getPageBySlug(slug: string, lang: Locale): Promise<SanityPage>
+}
+
+const EMPTY_DETAIL: PropertyDetailProjection = {
+  _id: '',
+  title: '',
+  slug: '',
+  price: 0,
+  operacion: { name: '', value: '' },
+  tipo: '',
+  localizacion: '',
+}
+
+/**
+ * Create the route-facing Sanity adapter backed by the given fetch client.
+ */
+export function createSanityDataAdapter(
+  client: SanityFetchClient
+): SanityDataAdapter {
+  async function getFrontPage(lang: Locale): Promise<FrontPage> {
     const raw = (await client.fetch(
       frontPageQuery,
       { lang },
@@ -42,19 +103,17 @@ export async function getFrontPage(lang: Locale): Promise<FrontPage> {
     const featured = Array.isArray(raw?.featured) ? raw.featured : []
     const latest = Array.isArray(raw?.latest)
       ? raw.latest
-          .map((r) => toListingProjection(r as Parameters<typeof toListingProjection>[0]))
+          .map((r) =>
+            toListingProjection(
+              r as Parameters<typeof toListingProjection>[0]
+            )
+          )
           .filter((p): p is PropertyListingProjection => p !== null)
       : []
     return { featured, latest }
   }
 
-  return { featured: [], latest: [] }
-}
-
-export async function getFiltersDropdownValues(
-  lang: Locale
-): Promise<FiltersDD> {
-  if (client) {
+  async function getFiltersDropdownValues(lang: Locale): Promise<FiltersDD> {
     return await client.fetch(
       filtersDropdownQuery,
       { lang },
@@ -62,23 +121,10 @@ export async function getFiltersDropdownValues(
     )
   }
 
-  return {
-    priceRentDD: 0,
-    priceSaleDD: 0,
-    bedroomsDD: 0,
-    bathroomsDD: 0,
-    operacionDD: [],
-    localizacionDD: [],
-    tipoDD: [],
-    total: 0,
-  }
-}
-
-export async function getSearchProperties(
-  searchParams: { [key: string]: string | string[] | undefined },
-  lang: Locale
-): Promise<PropertyListingProjection[]> {
-  if (client) {
+  async function getSearchProperties(
+    searchParams: { [key: string]: string | string[] | undefined },
+    lang: Locale
+  ): Promise<PropertyListingProjection[]> {
     const criteria = parseSearchParams(searchParams)
     const { query, params } = buildPropertySearchQuery(criteria)
 
@@ -95,11 +141,7 @@ export async function getSearchProperties(
       .filter((p): p is PropertyListingProjection => p !== null)
   }
 
-  return []
-}
-
-export async function getAllPropiedadesSlug(): Promise<PropertySlugProjection[]> {
-  if (client) {
+  async function getAllPropiedadesSlug(): Promise<PropertySlugProjection[]> {
     const raw = (await client.fetch(
       propiedadSlugsQuery,
       {},
@@ -108,14 +150,11 @@ export async function getAllPropiedadesSlug(): Promise<PropertySlugProjection[]>
     if (!Array.isArray(raw)) return []
     return toSlugProjections(raw as Parameters<typeof toSlugProjections>[0])
   }
-  return []
-}
 
-export async function getPropiedadBySlug(
-  lang: Locale,
-  slug: string
-): Promise<PropertyDetailProjection> {
-  if (client) {
+  async function getPropiedadBySlug(
+    lang: Locale,
+    slug: string
+  ): Promise<PropertyDetailProjection> {
     const raw = (await client.fetch(
       propiedadBySlugQuery,
       { slug, lang },
@@ -123,39 +162,50 @@ export async function getPropiedadBySlug(
     )) as Parameters<typeof toDetailProjection>[0]
     const projection = toDetailProjection(raw)
     if (projection) return projection
+    return { ...EMPTY_DETAIL, slug }
   }
-  return {
-    _id: '',
-    title: '',
-    slug,
-    price: 0,
-    operacion: { name: '', value: '' },
-    tipo: '',
-    localizacion: '',
-  }
-}
 
-export async function getAllPagesSlug() {
-  if (client) {
-    const slugs: string[] = await client.fetch(
+  async function getAllPagesSlug(): Promise<string[] | undefined> {
+    return (await client.fetch(
       pageSlugsQuery,
       {},
       getPolicyOptions('pages')
-    )
-    return slugs
+    )) as string[]
   }
-}
 
-export async function getPageBySlug(slug: string, lang: Locale) {
-  if (client) {
+  async function getPageBySlug(
+    slug: string,
+    lang: Locale
+  ): Promise<SanityPage> {
     return (
-      (await client.fetch(
+      ((await client.fetch(
         pageBySlugQuery,
         { slug, lang },
         getPolicyOptions('pages')
-      )) || ({} as any)
+      )) as SanityPage | null) || { content: [] }
     )
   }
 
-  return {} as any
+  return {
+    getFrontPage,
+    getFiltersDropdownValues,
+    getSearchProperties,
+    getAllPropiedadesSlug,
+    getPropiedadBySlug,
+    getAllPagesSlug,
+    getPageBySlug,
+  }
 }
+
+export const client = createClient({ apiVersion, dataset, projectId, useCdn })
+
+const sanityDataAdapter = createSanityDataAdapter(client)
+
+export const getFrontPage = sanityDataAdapter.getFrontPage
+export const getFiltersDropdownValues =
+  sanityDataAdapter.getFiltersDropdownValues
+export const getSearchProperties = sanityDataAdapter.getSearchProperties
+export const getAllPropiedadesSlug = sanityDataAdapter.getAllPropiedadesSlug
+export const getPropiedadBySlug = sanityDataAdapter.getPropiedadBySlug
+export const getAllPagesSlug = sanityDataAdapter.getAllPagesSlug
+export const getPageBySlug = sanityDataAdapter.getPageBySlug
