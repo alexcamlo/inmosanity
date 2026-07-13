@@ -20,6 +20,11 @@
   "alquiler_tag": "month",
   "resultados": "Results",
   "resultado": "Result",
+  "zero_results": {
+    "heading": "No properties found",
+    "message": "Try broadening your search or clearing the filters.",
+    "clear_filters": "Clear filters"
+  },
   "atras": "Go back",
   "footer": {
     "quienes_somos": {

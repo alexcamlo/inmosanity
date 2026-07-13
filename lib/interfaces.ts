@@ -91,6 +91,14 @@ export interface Dict {
   contactar_button: string
   whatsapp_enquiry_prefix: string
   alquiler_tag: string
+  resultados: string
+  resultado: string
+  zero_results: {
+    heading: string
+    message: string
+    clear_filters: string
+  }
+  atras: string
   footer: {
     quienes_somos: {
       quienes_somos_label: string

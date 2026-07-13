@@ -20,6 +20,11 @@
   "alquiler_tag": "mes",
   "resultados": "Resultados",
   "resultado": "Resultado",
+  "zero_results": {
+    "heading": "No se encontraron propiedades",
+    "message": "Prueba a ampliar la búsqueda o borrar los filtros.",
+    "clear_filters": "Borrar filtros"
+  },
   "atras": "Atras",
   "footer": {
     "quienes_somos": {

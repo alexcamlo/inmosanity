@@ -1,3 +1,4 @@
+import EmptyPropertyResults from '@/components/EmptyPropertyResults'
 import FilterBar from '@/components/FilterBar'
 import PropiedadCard from '@/components/ui/PropiedadCard'
 import Filters from '@/components/ui/filters'
@@ -7,6 +8,7 @@ import {
   getFiltersDropdownValues,
   getSearchProperties,
 } from '@/lib/sanity.client'
+import { getPropertyResultsState } from '@/lib/search-results-state'
 import { getPropertyListingMetadata } from '@/lib/site-metadata'
 import clsx from 'clsx'
 import type { Metadata } from 'next'
@@ -31,6 +33,10 @@ export default async function PropiedadesPage(props: Props) {
     getFiltersDropdownValues(params.lang),
     getSearchProperties(searchParams, params.lang as Locale),
   ])
+  const resultsState = getPropertyResultsState(
+    propiedades.length,
+    params.lang
+  )
 
   return (
     <>
@@ -44,26 +50,37 @@ export default async function PropiedadesPage(props: Props) {
         </div>
 
         <div className='grow'>
-          <h2 className=' py-2 text-sm font-semibold uppercase  tracking-wide text-zinc-800 lg:px-0'>
-            {propiedades.length == 1
-              ? `${propiedades.length} ${dict.resultado}`
-              : `${propiedades.length} ${dict.resultados}`}
-          </h2>
-          <div
-            className={clsx(
-              'grid  grid-cols-cards gap-4',
-              propiedades.length > 1 ? 'justify-center' : ''
-            )}
-          >
-            {propiedades.map((propiedad) => (
-              <PropiedadCard
-                key={propiedad.slug}
-                params={params}
-                dict={dict}
-                propiedad={propiedad}
-              />
-            ))}
-          </div>
+          {resultsState.kind === 'empty' ? (
+            <EmptyPropertyResults
+              heading={dict.zero_results.heading}
+              message={dict.zero_results.message}
+              actionLabel={dict.zero_results.clear_filters}
+              resetHref={resultsState.resetHref}
+            />
+          ) : (
+            <>
+              <h2 className=' py-2 text-sm font-semibold uppercase  tracking-wide text-zinc-800 lg:px-0'>
+                {propiedades.length == 1
+                  ? `${propiedades.length} ${dict.resultado}`
+                  : `${propiedades.length} ${dict.resultados}`}
+              </h2>
+              <div
+                className={clsx(
+                  'grid  grid-cols-cards gap-4',
+                  propiedades.length > 1 ? 'justify-center' : ''
+                )}
+              >
+                {propiedades.map((propiedad) => (
+                  <PropiedadCard
+                    key={propiedad.slug}
+                    params={params}
+                    dict={dict}
+                    propiedad={propiedad}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>
