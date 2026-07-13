@@ -24,14 +24,13 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 }
 
 export default async function PropiedadesPage(props: Props) {
-  const searchParams = await props.searchParams;
-  const params = await props.params;
-  const dict = await getDictionary(params.lang)
-  const filtersDD = await getFiltersDropdownValues(params.lang)
-  const propiedades = await getSearchProperties(
-    searchParams,
-    params.lang as Locale
-  )
+  const searchParams = await props.searchParams
+  const params = await props.params
+  const [dict, filtersDD, propiedades] = await Promise.all([
+    getDictionary(params.lang),
+    getFiltersDropdownValues(params.lang),
+    getSearchProperties(searchParams, params.lang as Locale),
+  ])
 
   return (
     <>

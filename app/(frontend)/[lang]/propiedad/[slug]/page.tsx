@@ -49,8 +49,10 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
 export default async function Propiedad(props: Props) {
   const params = await props.params
-  const dict = await getDictionary(params.lang)
-  const propiedadData = await getPropiedadBySlug(params.lang, params.slug)
+  const [dict, propiedadData] = await Promise.all([
+    getDictionary(params.lang),
+    getPropiedadBySlug(params.lang, params.slug),
+  ])
   const propiedad = requireProperty(propiedadData, notFound)
 
   const price = getPropertyPriceDisplay(propiedad, 'detail', dict)

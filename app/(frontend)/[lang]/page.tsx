@@ -26,10 +26,12 @@ export default async function FrontPage(
     params: Promise<{ lang: Locale }>
   }
 ) {
-  const params = await props.params;
-  const dict = await getDictionary(params.lang)
-  const { featured, latest } = await getFrontPage(params.lang)
-  const filtersDD = await getFiltersDropdownValues(params.lang)
+  const params = await props.params
+  const [dict, { featured, latest }, filtersDD] = await Promise.all([
+    getDictionary(params.lang),
+    getFrontPage(params.lang),
+    getFiltersDropdownValues(params.lang),
+  ])
 
   return (
     <>
