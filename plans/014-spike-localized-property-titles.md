@@ -1,157 +1,98 @@
-# Plan 014: Decide a safe migration path for localized property titles
+# Plan 014: Confirm property titles remain language-neutral codes
 
-> **Executor instructions**: This is a design/data spike. Do not modify schemas, queries, content, or production code. Produce the decision document and evidence requested below, then stop. Update the plan index when done.
+> **Final product decision (2026-07-13):** Property titles are inventory codes and are intentionally identical across languages. No localized-title schema or content migration is needed. This decision supersedes the migration proposal produced during the initial spike.
 >
-> **Drift check (run first)**: `git diff --stat b0275ac..HEAD -- lib/sanity_schemas/propiedad.tsx lib/sanity.queries.ts lib/property-projection.ts app/'(frontend)'/'[lang]'/propiedad/'[slug]'/page.tsx docs/decisions/localized-property-titles.md`
+> **Executor instructions:** Record the no-migration decision and its consequences. Do not modify schemas, queries, content, or production code.
+>
+> **Drift check:** `git diff --stat b0275ac..HEAD -- lib/sanity_schemas/propiedad.tsx lib/sanity.queries.ts lib/property-projection.ts app/'(frontend)'/'[lang]'/propiedad/'[slug]'/page.tsx docs/decisions/localized-property-titles.md`
 
 ## Status
 
 - **Priority**: P3
-- **Effort**: M
-- **Risk**: LOW (spike only)
+- **Effort**: S
+- **Risk**: LOW (decision record only)
 - **Depends on**: `plans/008-add-route-seo-metadata.md`, `plans/012-add-contextual-whatsapp-links.md`
 - **Category**: direction
+- **Outcome**: DONE — retain scalar language-neutral title codes; no migration
 - **Planned at**: commit `b0275ac`, 2026-07-13
 
 ## Why this matters
 
-The site is bilingual and localizes property descriptions, operation/type labels, and UI, but every property title is one scalar string. English pages and enquiries can therefore mix translated content with a Spanish headline. Changing title shape affects Studio editing, GROQ projections, static metadata, slug generation, and existing content, so the correct next step is a documented migration decision rather than an immediate schema edit.
+The original audit treated property titles as Spanish prose and proposed investigating localization. Product clarified that the values are inventory codes, not translatable display names. Recording that distinction prevents unnecessary schema fields, content backfills, fallback GROQ, translation work, and slug risk.
 
 ## Current state
 
-- `lib/sanity_schemas/propiedad.tsx:14-18` defines `title` as required `string`.
-- `lib/sanity_schemas/propiedad.tsx:96-113` defines `description` as an object with `es` and `en` text fields.
-- The slug field at lines 19-36 derives from scalar `title`; existing public URLs must not change.
-- `lib/sanity.queries.ts:4-18` projects scalar `title`, while operation/type labels already use locale fallback.
-- `lib/property-projection.ts:40-54` requires a scalar string title for listing/detail projections.
-- Plan 008 uses title in route metadata, and Plan 012 uses it in enquiry context.
-- Architecture constraints: preserve existing slugs; no live preview or generated Sanity types are assumed.
+- `lib/sanity_schemas/propiedad.tsx` defines `title` as a required scalar string.
+- GROQ and runtime projections expose scalar `title`.
+- Metadata, headings, alternative text, and contact links may show the same code in either locale.
+- Existing slugs are stable and remain unchanged.
+- Descriptions, reference labels, and interface copy continue to use their existing localization fields.
 
 ## Commands you will need
 
 | Purpose | Command | Expected on success |
 |---|---|---|
-| Source inventory | `rg -n '\btitle\b' lib/sanity_schemas/propiedad.tsx lib/sanity.queries.ts lib/property-projection.ts app components` | complete impact list |
-| Slug inventory | `rg -n 'slug|source: .title.' lib/sanity_schemas/propiedad.tsx lib/sanity.queries.ts` | current coupling identified |
-| Doc check | `test -s docs/decisions/localized-property-titles.md` | exit 0 |
+| Decision record | `test -s docs/decisions/localized-property-titles.md` | exit 0 |
+| No migration artifacts | `git diff --name-only HEAD^ | rg '^(lib/sanity_schemas|lib/sanity\.queries|lib/property-projection)'` | no matches |
+| Verification | `yarn verify` | exit 0 |
 
 ## Scope
 
 **In scope**:
-- `docs/decisions/localized-property-titles.md` (create)
-- Read-only inspection of schema/query/projection/UI and, if authorized, read-only aggregate content queries
+- `docs/decisions/localized-property-titles.md`
+- This plan and `plans/README.md` to reflect the final product decision
 
 **Out of scope**:
-- Any source/schema/query change
-- Any Sanity content mutation or migration execution
+- Schema, query, projection, UI, or content changes
+- Adding localized title fields
+- Translating or backfilling title values
 - Changing or regenerating slugs
-- Deploying Studio
-- Enabling live preview or generated types
-- Copying property content into the document beyond non-sensitive aggregate counts/examples
+- Deploying Studio or mutating Sanity content
 
 ## Git workflow
 
 - Branch: `advisor/014-localized-title-spike`
-- Commit: `docs: design localized property titles`
+- Corrective commit: `docs: record title code decision`
 - Do not push unless instructed.
 
 ## Steps
 
-### Step 1: Map every title consumer
+### Step 1: Record the final decision
 
-Inventory scalar title usage across:
+State that `title` is a language-neutral inventory code and remains a required scalar string. Explicitly reject `displayTitle`, `{es, en}`, and internationalized-array/plugin migrations.
 
-- Studio schema/preview and slug generation.
-- GROQ query fragments and front-page featured shape.
-- Listing/detail projections.
-- Cards, sliders, detail heading, metadata, email, and WhatsApp.
-- Tests and sitemap/static generation.
+**Verify**: the decision record says “Accepted — no migration.”
 
-Record exact `file:symbol` references in the decision document. Separate places that need localized display from stable identifiers that must remain unchanged.
+### Step 2: Preserve stable contracts
 
-**Verify**: document contains an “Impact map” table with schema, query, projection, UI, metadata, contact, and tests rows.
+Document that schema, GROQ, projection types, metadata, contact links, Studio preview, and existing slugs remain unchanged. Localized surrounding copy may continue to include the same code.
 
-### Step 2: Measure content migration shape through an anonymous aggregate query
+**Verify**: the decision record lists the unchanged consumer contracts and stable-slug invariant.
 
-Use only the Sanity CLI's read-only `documents query` command with `--anonymous`. Do not remove `--anonymous`, do not supply a token, and do not run `documents create/delete`, `migration run`, `dataset`, `deploy`, or `exec`.
+### Step 3: Close migration work
 
-Run this exact aggregate query, which returns counts only and no document content:
+Remove proposed migration phases, fallback queries, translation ownership, publication-language gates, and rollback tasks. They are unnecessary because there is no translatable title field.
 
-```bash
-yarn sanity documents query --anonymous --api-version 2023-01-01 '{
-  "totalPublished": count(*[_type == "propiedad" && !(_id in path("drafts.**"))]),
-  "usableTitles": count(*[_type == "propiedad" && !(_id in path("drafts.**")) && defined(title) && title != ""]),
-  "missingTitles": count(*[_type == "propiedad" && !(_id in path("drafts.**")) && (!defined(title) || title == "")]),
-  "slugged": count(*[_type == "propiedad" && !(_id in path("drafts.**")) && defined(slug.current)]),
-  "distinctSlugs": count(array::unique(*[_type == "propiedad" && !(_id in path("drafts.**")) && defined(slug.current)].slug.current))
-}'
-```
-
-Record only the five aggregate numbers in the decision document. Because the current schema proves title is scalar, `usableTitles` is the scalar-title count. If anonymous access fails, do not retry with credentials: record all five values as `UNKNOWN`, copy the exact aggregate query (not environment/config values) into a “Maintainer follow-up” subsection, and continue the spike.
-
-**Verify**: the document's “Content inventory” contains exactly these five count names with numeric values or `UNKNOWN`; it contains no titles, slugs, document IDs, environment values, or credential instructions.
-
-### Step 3: Compare migration options
-
-Evaluate at least:
-
-1. Replace `title: string` with `{es, en}` directly.
-2. Add localized `displayTitle` while retaining legacy `title` as stable Spanish/source text.
-3. Use Sanity internationalized-array/plugin patterns.
-
-For each, document editor UX, query fallback, rollout compatibility, slug impact, metadata/contact impact, migration complexity, and rollback. Respect the existing simple localized object pattern unless a plugin provides concrete value.
-
-**Verify**: document contains a comparison table with all criteria and one recommended option.
-
-### Step 4: Specify a staged migration without executing it
-
-The recommendation must include:
-
-- Target schema shape and field naming.
-- Backward-compatible GROQ `select`/`coalesce` fallback during migration.
-- Projection type transition.
-- Content backfill strategy (Spanish from legacy title; English requires editorial translation, not automatic fabrication unless product approves it).
-- Explicit rule that existing slug values are frozen.
-- Studio preview behavior during mixed old/new content.
-- Test cases and rollout/rollback checkpoints.
-
-Do not include executable mutation credentials or run a migration.
-
-**Verify**: document has “Migration phases”, “Rollback”, and “Acceptance tests” sections.
-
-### Step 5: Record open product decisions
-
-At minimum answer or flag:
-
-- Is Spanish the authoritative fallback?
-- May English temporarily fall back to Spanish?
-- Who owns translation of existing inventory?
-- Must new documents require both languages before publication?
-- Should generic reference fields remain language maps as today?
-
-**Verify**: document has a decision/status for each question and clearly labels unresolved items.
+**Verify**: no localized-title implementation follow-up remains in the decision record or plan index.
 
 ## Test plan
 
-No application tests are changed in this spike. The decision document must list future tests for schema validation, GROQ fallback for old/new/mixed records, projection behavior, title rendering in both locales, stable slugs, metadata, and contact links.
+No application tests change because application behavior does not change. Existing projection, adapter, metadata, contact-link, route, and sitemap tests continue to protect scalar codes and stable URLs. Run `yarn verify` after the documentation correction.
 
 ## Done criteria
 
-- [ ] Only `docs/decisions/localized-property-titles.md` and `plans/README.md` changed.
-- [ ] Impact map covers every title consumer.
-- [ ] Three migration options are compared.
-- [ ] One option is recommended with trade-offs.
-- [ ] Existing slugs are explicitly preserved.
-- [ ] Staged rollout, rollback, tests, content inventory, and open decisions are documented.
-- [ ] No source/schema/content mutation occurred.
+- [x] Product decision is recorded as no migration.
+- [x] `title` remains a scalar language-neutral code.
+- [x] Existing slugs remain unchanged.
+- [x] No schema, query, projection, content, or UI change is proposed.
+- [x] Decision record and plan index no longer describe localized-title work as a follow-up.
+- [x] Only documentation files changed.
 
 ## STOP conditions
 
-- Any command would mutate Sanity content or deploy Studio.
-- The current schema no longer uses scalar title.
-- Product has already recorded a conflicting title-localization decision.
-- An environment value or content record would need to be copied into the document.
+- A future requirement introduces a separate human-readable name that genuinely varies by locale.
+- Any proposed correction would mutate content, schema, queries, or slugs.
 
 ## Maintenance notes
 
-After maintainers approve the decision, write a separate implementation/migration plan against the then-current commit. Do not turn this spike branch directly into a schema migration without that review gate.
+Reopen this decision only for a new language-dependent display-name requirement. Do not reinterpret the existing property code as translatable prose.
