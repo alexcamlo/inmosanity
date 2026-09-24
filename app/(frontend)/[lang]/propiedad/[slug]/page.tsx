@@ -19,22 +19,48 @@ import {
 import Pill from '@/components/ui/Pill'
 import { getDictionary } from '@/get-dictionary'
 import { i18n, Locale } from '@/i18n-config'
+import { buildWhatsAppPropertyUrl } from '@/lib/contact-links'
 import {
   getPropertyFacts,
   getPropertyLocationDisplay,
   getPropertyPriceDisplay,
 } from '@/lib/property-presentation'
-import type { PropertyDetailProjection } from '@/lib/property-projection'
+import { requireProperty } from '@/lib/require-property'
+import {
+  getMissingPropertyMetadata,
+  getPropertyMetadata,
+} from '@/lib/site-metadata'
 import clsx from 'clsx'
 import { getAllPropiedadesSlug, getPropiedadBySlug } from 'lib/sanity.client'
+import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 
-export default async function Propiedad(props: {
+type Props = {
   params: Promise<{ lang: Locale; slug: string }>
-}) {
+}
+
+export async function generateMetadata(props: Props): Promise<Metadata> {
   const params = await props.params
-  const dict = await getDictionary(params.lang)
-  const propiedadData = getPropiedadBySlug(params.lang, params.slug)
-  const propiedad = (await propiedadData) as PropertyDetailProjection
+  const property = await getPropiedadBySlug(params.lang, params.slug)
+
+  return property
+    ? getPropertyMetadata(params.lang, property)
+    : getMissingPropertyMetadata()
+}
+
+export default async function Propiedad(props: Props) {
+  const params = await props.params
+  const [dict, propiedadData] = await Promise.all([
+    getDictionary(params.lang),
+    getPropiedadBySlug(params.lang, params.slug),
+  ])
+  const propiedad = requireProperty(propiedadData, notFound)
+  const whatsappUrl = buildWhatsAppPropertyUrl({
+    locale: params.lang,
+    slug: propiedad.slug,
+    title: propiedad.title,
+    messagePrefix: dict.whatsapp_enquiry_prefix,
+  })
 
   const price = getPropertyPriceDisplay(propiedad, 'detail', dict)
   const location = getPropertyLocationDisplay(propiedad)
@@ -106,7 +132,7 @@ export default async function Propiedad(props: {
                   <a
                     className='grid h-10 w-10 place-items-center rounded-full text-green-600 hover:bg-green-50'
                     aria-label='Whatsapp'
-                    href='https://wa.me/34655849409'
+                    href={whatsappUrl}
                   >
                     <WhatsappLogoIcon size={28} />
                   </a>
@@ -281,7 +307,7 @@ export default async function Propiedad(props: {
               <a
                 className='grid h-10 w-10 place-items-center rounded-full text-green-600 hover:bg-green-50'
                 aria-label='Whatsapp'
-                href='https://wa.me/34655849409'
+                href={whatsappUrl}
               >
                 <WhatsappLogoIcon size={28} />
               </a>

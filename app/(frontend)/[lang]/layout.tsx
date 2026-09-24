@@ -3,6 +3,10 @@ import Header from '@/components/Header'
 import { TailwindIndicator } from '@/components/tailwind-indicator'
 import { getDictionary } from '@/get-dictionary'
 import { Locale } from '@/i18n-config'
+import {
+  SITE_TITLE_DEFAULT,
+  SITE_TITLE_TEMPLATE,
+} from '@/lib/site-metadata'
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { ReactNode } from 'react'
@@ -17,7 +21,10 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'Inmogolf Bonalba',
+  title: {
+    default: SITE_TITLE_DEFAULT,
+    template: SITE_TITLE_TEMPLATE,
+  },
 
   /* description: 'Inmogolf Bonalba, Inmobiliaria en el campo de golf Bonalba', */
   keywords: [
@@ -29,14 +36,6 @@ export const metadata: Metadata = {
     'Mutxamel',
     'Golf',
   ],
-
-  alternates: {
-    canonical: 'https://inmogolfbonalba.com/',
-    languages: {
-      en: 'https://inmogolfbonalba.com/en',
-      es: 'https://inmogolfbonalba.com/es',
-    },
-  }
 }
 
 type Props = {

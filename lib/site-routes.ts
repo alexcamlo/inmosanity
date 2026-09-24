@@ -10,5 +10,7 @@ export function getPropertyUrl(
 }
 
 export function getStaticPageUrl(locale: string, route: string): string {
-  return `${SITE_URL}/${locale}/${route}`
+  const trimmed = route.replace(/^\/+/, '')
+  if (trimmed === '') return `${SITE_URL}/${locale}`
+  return `${SITE_URL}/${locale}/${trimmed}`
 }

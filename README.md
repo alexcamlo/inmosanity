@@ -67,25 +67,23 @@ Run these from the repo root. Each command is independent; the order is the
 recommended sequence (fastest → slowest).
 
 ```bash
-# Plain Node tests (lib + content-freshness + image + property modules)
-node_modules/.bin/tsx tests/sanity-cache.test.ts
-node_modules/.bin/tsx tests/sanity-revalidation.test.ts
-node_modules/.bin/tsx tests/content-freshness.test.ts
-node_modules/.bin/tsx tests/sanity-image.test.ts
-node_modules/.bin/tsx tests/image-config.test.ts
-node_modules/.bin/tsx tests/property-search.test.ts
-node_modules/.bin/tsx tests/property-projection.test.ts
-node_modules/.bin/tsx tests/property-presentation.test.ts
-node_modules/.bin/tsx tests/site-routes.test.ts
+# Run every plain Node test (alphabetical by file name)
+yarn test
+# To run a single test, use `node_modules/.bin/tsx tests/<name>.test.ts`
 
-# TypeScript (no emit)
+# Type-check the app source
 yarn type-check
+# Type-check the tests in isolation
+yarn type-check:tests
 
 # ESLint
 yarn lint
 
 # Prettier (writes changes)
 yarn format
+
+# Aggregate gate (tests + app type-check + test type-check + lint)
+yarn verify
 
 # Production build
 yarn build
@@ -94,7 +92,10 @@ yarn build
 yarn start
 ```
 
-`yarn lint:fix` runs `format` and ESLint autofixes in sequence.
+`yarn lint:fix` runs `format` and ESLint autofixes in sequence. CI runs
+`yarn verify` on every push to `main` and pull request; a separate
+`build` job runs only when both `NEXT_PUBLIC_SANITY_PROJECT_ID` and
+`NEXT_PUBLIC_SANITY_DATASET` repository variables are configured.
 
 ## Where to look next
 

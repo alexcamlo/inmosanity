@@ -4,6 +4,7 @@ import PropiedadCard from '@/components/ui/PropiedadCard'
 import { getDictionary } from '@/get-dictionary'
 import { Locale, i18n } from '@/i18n-config'
 import { getFiltersDropdownValues, getFrontPage } from '@/lib/sanity.client'
+import { getHomeMetadata } from '@/lib/site-metadata'
 import { Metadata } from 'next'
 import { Suspense } from 'react'
 
@@ -16,23 +17,8 @@ export async function generateMetadata(
     params: Promise<{ lang: Locale }>
   }
 ): Promise<Metadata> {
-  const params = await props.params;
-  const title =
-    params.lang === 'en'
-      ? 'InmoGolfBonalba | Your real estate agent in Bonalba Golf Club'
-      : 'InmoGolfBonalba | Tu inmobiliaria en Club de Golf Bonalba'
-  const description =
-    params.lang === 'en'
-      ? 'InmoGolf Bonalba, your real estate agent in Bonalba Golf Club'
-      : 'Inmogolf Bonalba, tu Inmobiliaria en el campo de golf Bonalba'
-
-  return {
-    title: {
-      default: title,
-      template: 'InmoGolf Bonalba | %s',
-    },
-    description: description,
-  }
+  const params = await props.params
+  return getHomeMetadata(params.lang)
 }
 
 export default async function FrontPage(
@@ -40,10 +26,12 @@ export default async function FrontPage(
     params: Promise<{ lang: Locale }>
   }
 ) {
-  const params = await props.params;
-  const dict = await getDictionary(params.lang)
-  const { featured, latest } = await getFrontPage(params.lang)
-  const filtersDD = await getFiltersDropdownValues(params.lang)
+  const params = await props.params
+  const [dict, { featured, latest }, filtersDD] = await Promise.all([
+    getDictionary(params.lang),
+    getFrontPage(params.lang),
+    getFiltersDropdownValues(params.lang),
+  ])
 
   return (
     <>

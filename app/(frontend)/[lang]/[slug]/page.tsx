@@ -1,6 +1,8 @@
 import { Locale, i18n } from '@/i18n-config'
 import { getAllPagesSlug, getPageBySlug } from '@/lib/sanity.client'
+import { getLegalNoticeMetadata } from '@/lib/site-metadata'
 import { PortableText } from '@portabletext/react'
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 
 type Props = {
@@ -8,6 +10,11 @@ type Props = {
     slug: string
     lang: Locale
   }>
+}
+
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const { lang, slug } = await props.params
+  return slug === 'aviso-legal' ? getLegalNoticeMetadata(lang) : {}
 }
 
 export default async function Page(props: Props) {

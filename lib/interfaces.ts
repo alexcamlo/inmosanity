@@ -1,6 +1,9 @@
 import { Image } from 'sanity'
 
-import type { PropertyListingProjection } from './property-projection'
+import type {
+  FeaturedPropertyProjection,
+  PropertyListingProjection,
+} from './property-projection'
 
 export interface Settings {
   title?: string
@@ -11,16 +14,8 @@ export interface Settings {
 }
 
 export interface FrontPage {
-  featured: Featured[]
+  featured: FeaturedPropertyProjection[]
   latest: PropertyListingProjection[]
-}
-
-export interface Featured {
-  title: string
-  slug: string
-  coverImage: Image
-  tipo: string
-  operacion: string
 }
 
 export interface Propiedad {
@@ -94,7 +89,16 @@ export interface Dict {
   destacados: string
   ultimos_anadidos: string
   contactar_button: string
+  whatsapp_enquiry_prefix: string
   alquiler_tag: string
+  resultados: string
+  resultado: string
+  zero_results: {
+    heading: string
+    message: string
+    clear_filters: string
+  }
+  atras: string
   footer: {
     quienes_somos: {
       quienes_somos_label: string

@@ -8,6 +8,7 @@
  * localized-field fallbacks, or slug mapping.
  *
  * UI code should consume only:
+ *   - `FeaturedPropertyProjection` (front-page featured slider)
  *   - `PropertyListingProjection` (cards, latest list, search results)
  *   - `PropertyDetailProjection`  (detail page)
  *   - `PropertySlugProjection`    (sitemap, generateStaticParams)
@@ -32,6 +33,15 @@ export type PropertyLocalizacionPadre = {
 
 /** Localized image used as cover or gallery. */
 export type PropertyImage = Image
+
+/** Featured projection consumed by the front-page slider. */
+export type FeaturedPropertyProjection = {
+  title: string
+  slug: string
+  coverImage: PropertyImage
+  tipo: string
+  operacion: string
+}
 
 /**
  * Listing projection: minimum shape consumed by the Propiedad card,
@@ -74,6 +84,14 @@ export type PropertySlugProjection = {
   slug: string
 }
 
+type RawFeaturedRecord = {
+  title?: string | null
+  slug?: string | null
+  coverImage?: unknown
+  tipo?: string | null
+  operacion?: string | null
+}
+
 /** Raw record shape coming back from the listing GROQ query. */
 type RawOperacion = {
   name?: string
@@ -112,6 +130,55 @@ type RawSlugRecord = string | { current?: string | null } | null | undefined
 
 function nonEmptyString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined
+}
+
+function isCanonicalFeaturedImageRef(value: unknown): value is string {
+  if (typeof value !== 'string') return false
+
+  // `frontPageQuery` returns an image asset reference, not an asset URL or
+  // embedded document. Sanity image refs use
+  // image-<asset-id>-<positive-width>x<positive-height>-<extension>.
+  return /^image-[A-Za-z0-9]+-[1-9]\d*x[1-9]\d*-[A-Za-z0-9]+$/.test(value)
+}
+
+function toFeaturedImage(value: unknown): PropertyImage | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const image = value as {
+    _type?: unknown
+    asset?: { _ref?: unknown } | null
+  }
+  if (image._type !== 'image' || !image.asset) return undefined
+  if (!isCanonicalFeaturedImageRef(image.asset._ref)) return undefined
+  return value as PropertyImage
+}
+
+/** Normalize one featured record, rejecting unsafe image/identity shapes. */
+export function toFeaturedProjection(
+  raw: unknown
+): FeaturedPropertyProjection | null {
+  if (!raw || typeof raw !== 'object') return null
+  const record = raw as RawFeaturedRecord
+  const title = nonEmptyString(record.title)
+  const slug = nonEmptyString(record.slug)
+  const coverImage = toFeaturedImage(record.coverImage)
+  const tipo = nonEmptyString(record.tipo)
+  const operacion = nonEmptyString(record.operacion)
+  if (!title || !slug || !coverImage || !tipo || !operacion) return null
+
+  return { title, slug, coverImage, tipo, operacion }
+}
+
+/** Normalize featured records, dropping invalid entries without reordering. */
+export function toFeaturedProjections(
+  raws: readonly unknown[] | null | undefined
+): FeaturedPropertyProjection[] {
+  if (!raws) return []
+  const out: FeaturedPropertyProjection[] = []
+  for (const raw of raws) {
+    const projection = toFeaturedProjection(raw)
+    if (projection) out.push(projection)
+  }
+  return out
 }
 
 function toOperacionView(
